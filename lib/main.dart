@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'screens/explore_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/profile_screen.dart';
 import 'utils/app_colors.dart'; // Import AppColors
+import 'screens/osm_map.dart';
 
 // Placeholder for a potential "Add/Center Action" screen or modal
 class CenterActionScreen extends StatelessWidget {
@@ -17,7 +20,11 @@ class CenterActionScreen extends StatelessWidget {
   }
 }
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(MyApp());
 }
 
@@ -99,9 +106,9 @@ class _MainAppShellState extends State<MainAppShell> {
         onPressed: () {
           // Action for the central button
           // This could navigate to a new screen, show a modal, etc.
-          Navigator.push(context, MaterialPageRoute(builder: (context) => CenterActionScreen()));
+          Navigator.push(context, MaterialPageRoute(builder: (context) => MapScreen()));
         },
-        child: Image.asset('assets/icons/center.png', width: 28, height: 28, color: AppColors.snow), // Using snow for icon color on FAB
+        child: Image.asset('assets/icons/map.png', width: 40, height: 48,), // Using snow for icon color on FAB
         backgroundColor: AppColors.primary, // FeatherGreen
         elevation: 4.0,
         shape: CircleBorder(), // Ensure the FAB is circular
