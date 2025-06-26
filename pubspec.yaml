@@ -13,8 +13,24 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   
+  # State Management - BLoC
+  flutter_bloc: ^8.1.6
+  bloc: ^8.1.4
+  equatable: ^2.0.5
+  
+  # Dependency Injection
+  get_it: ^7.7.0
+  injectable: ^2.4.4
+  
+  # Network & HTTP
+  dio: ^5.7.0
+  retrofit: ^4.4.1
+  json_annotation: ^4.9.0
+  
   # Firebase dependencies
   firebase_core: ^2.24.2
+  firebase_auth: ^4.15.3
+  google_sign_in: ^6.1.6
   cloud_firestore: ^4.13.6
   
   # Map and location dependencies
@@ -29,12 +45,23 @@ dependencies:
   
   # UI dependencies
   flutter_typeahead: ^5.0.1
+  
+  # Utilities
+  dartz: ^0.10.1
+  freezed_annotation: ^2.4.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_launcher_icons: ^0.13.1
   flutter_lints: ^5.0.0
+  
+  # Code generation
+  build_runner: ^2.4.13
+  injectable_generator: ^2.6.2
+  retrofit_generator: ^8.2.0
+  json_serializable: ^6.8.0
+  freezed: ^2.5.7
 
 flutter:
   uses-material-design: true
@@ -44,6 +71,7 @@ flutter:
     - assets/fonts/
     - assets/riddles/
     - assets/background/
+    - assets/mascot/
 
   fonts:
     - family: Poppins
