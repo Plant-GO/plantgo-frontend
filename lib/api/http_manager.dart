@@ -8,7 +8,7 @@ class HttpManager {
   HttpManager() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'https://your-backend-api.com/api/v1', // Replace with your backend URL
+        baseUrl: 'http://localhost:8080', // Local Go backend
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {

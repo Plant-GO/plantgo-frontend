@@ -7,6 +7,7 @@ import 'package:plantgo/presentation/blocs/course/course_state.dart';
 import 'package:plantgo/presentation/screens/plant_riddle/plant_riddle_screen.dart';
 import 'package:plantgo/presentation/widgets/course/course_path_node.dart';
 import 'package:plantgo/presentation/widgets/course/course_stats_bar.dart';
+import 'package:plantgo/core/constants/app_images.dart';
 
 class CourseScreen extends StatelessWidget {
   const CourseScreen({super.key});
@@ -19,7 +20,7 @@ class CourseScreen extends StatelessWidget {
           // Background image
           Positioned.fill(
             child: Image.asset(
-              'assets/background/background.jpg',
+              AppImages.background, // use background constant
               fit: BoxFit.cover,
             ),
           ),
@@ -202,14 +203,14 @@ class CourseScreen extends StatelessWidget {
           onTap: () => _navigateToLevel(context, 3),
         ),
         CoursePathNode(
-          icon: Icons.redeem_rounded,
-          color: Colors.redAccent.shade200,
+          icon: Icons.monetization_on,
+          color: AppColors.bee,
           size: 40,
           alignment: PathNodeAlignment.left,
         ),
         CoursePathNode(
-          icon: Icons.eco_rounded,
-          color: Colors.lightGreenAccent.shade400,
+          icon: Icons.eco,
+          color: AppColors.primary,
           size: 40,
           alignment: PathNodeAlignment.right,
         ),

@@ -43,6 +43,14 @@ dependencies:
   image: ^4.1.3
   path_provider: ^2.1.1
   
+  # Camera and scanning dependencies
+  camera: ^0.10.5+5
+  web_socket_channel: ^2.4.0
+  permission_handler: ^11.0.1
+  
+  # Animation dependencies for enhanced scanner
+  rive: ^0.12.4
+  
   # UI dependencies
   flutter_typeahead: ^5.0.1
   

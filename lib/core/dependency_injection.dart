@@ -7,11 +7,17 @@ import 'package:plantgo/presentation/blocs/map/map_cubit.dart';
 import 'package:plantgo/presentation/blocs/notifications/notifications_cubit.dart';
 import 'package:plantgo/presentation/blocs/profile/profile_cubit.dart';
 import 'package:plantgo/presentation/blocs/start_game/start_game_cubit.dart';
+import 'package:plantgo/presentation/blocs/scanner/scanner_cubit.dart';
+import 'package:plantgo/presentation/blocs/riddle/riddle_bloc.dart';
 import 'package:plantgo/core/services/location_service.dart';
 import 'package:plantgo/core/services/image_service.dart';
 import 'package:plantgo/domain/repositories/auth_repository.dart';
+import 'package:plantgo/domain/repositories/riddle_repository.dart';
 import 'package:plantgo/domain/usecases/auth_usecases.dart';
+import 'package:plantgo/domain/usecases/get_riddle_by_level_usecase.dart';
+import 'package:plantgo/domain/usecases/get_active_riddles_usecase.dart';
 import 'package:plantgo/data/repositories/auth_repository_impl.dart';
+import 'package:plantgo/data/repositories/riddle_repository_impl.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -26,6 +32,7 @@ Future<void> configureDependencies() async {
   
   // Repositories
   getIt.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(getIt<ApiService>()));
+  getIt.registerLazySingleton<RiddleRepository>(() => RiddleRepositoryImpl(getIt<ApiService>()));
   
   // Use Cases
   getIt.registerLazySingleton<SignInWithEmailUseCase>(() => SignInWithEmailUseCase(getIt<AuthRepository>()));
@@ -34,6 +41,8 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<SignInAsGuestUseCase>(() => SignInAsGuestUseCase(getIt<AuthRepository>()));
   getIt.registerLazySingleton<SignOutUseCase>(() => SignOutUseCase(getIt<AuthRepository>()));
   getIt.registerLazySingleton<GetCurrentUserUseCase>(() => GetCurrentUserUseCase(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<GetRiddleByLevelUseCase>(() => GetRiddleByLevelUseCase(getIt<RiddleRepository>()));
+  getIt.registerLazySingleton<GetActiveRiddlesUseCase>(() => GetActiveRiddlesUseCase(getIt<RiddleRepository>()));
   
   // BLoCs/Cubits
   getIt.registerFactory<AuthCubit>(() => AuthCubit(
@@ -53,4 +62,9 @@ Future<void> configureDependencies() async {
     getIt<ImageService>(),
   ));
   getIt.registerFactory<NotificationsCubit>(() => NotificationsCubit(getIt<ApiService>()));
+  getIt.registerFactory<ScannerCubit>(() => ScannerCubit(getIt<ApiService>()));
+  getIt.registerFactory<RiddleBloc>(() => RiddleBloc(
+    getRiddleByLevelUseCase: getIt<GetRiddleByLevelUseCase>(),
+    getActiveRiddlesUseCase: getIt<GetActiveRiddlesUseCase>(),
+  ));
 }
