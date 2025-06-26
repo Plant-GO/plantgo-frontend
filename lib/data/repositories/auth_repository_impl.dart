@@ -79,19 +79,22 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, UserEntity>> signInAsGuest() async {
+  Future<Either<Failure, UserEntity>> signInAsGuest({
+    required String androidId,
+    required String username,
+  }) async {
     try {
-      // Create a guest user
-      final userModel = UserModel(
-        id: 'guest_${DateTime.now().millisecondsSinceEpoch}',
-        email: 'guest@plantgo.com',
-        fullName: 'Guest User',
-        profileImageUrl: null,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        isEmailVerified: false,
+      final response = await _apiService.guestLogin(
+        androidId: androidId,
+        username: username,
       );
-      return Right(userModel.toEntity());
+      if ((response.statusCode == 200 || response.statusCode == 201) && response.data != null) {
+        final userData = response.data!['user'];
+        final userModel = UserModel.fromMap(userData);
+        return Right(userModel.toEntity());
+      } else {
+        return Left(ServerFailure('Guest login failed'));
+      }
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

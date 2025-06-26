@@ -66,11 +66,14 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
-  Future<void> signInAsGuest() async {
+  Future<void> signInAsGuest({
+    required String androidId,
+    required String username,
+  }) async {
     emit(AuthLoading());
-    
-    final result = await _signInAsGuestUseCase();
-
+    final result = await _signInAsGuestUseCase(
+      SignInAsGuestParams(androidId: androidId, username: username),
+    );
     result.fold(
       (failure) => emit(AuthError(message: failure.message)),
       (user) => emit(AuthAuthenticated(user: user)),

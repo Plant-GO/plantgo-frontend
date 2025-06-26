@@ -47,13 +47,22 @@ class SignInWithGoogleUseCase {
   }
 }
 
+class SignInAsGuestParams {
+  final String androidId;
+  final String username;
+  SignInAsGuestParams({required this.androidId, required this.username});
+}
+
 class SignInAsGuestUseCase {
   final AuthRepository _authRepository;
 
   SignInAsGuestUseCase(this._authRepository);
 
-  Future<Either<Failure, UserEntity>> call() async {
-    return await _authRepository.signInAsGuest();
+  Future<Either<Failure, UserEntity>> call(SignInAsGuestParams params) async {
+    return await _authRepository.signInAsGuest(
+      androidId: params.androidId,
+      username: params.username,
+    );
   }
 }
 

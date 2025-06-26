@@ -16,7 +16,10 @@ abstract class AuthRepository {
 
   Future<Either<Failure, UserEntity>> signInWithGoogle();
 
-  Future<Either<Failure, UserEntity>> signInAsGuest();
+  Future<Either<Failure, UserEntity>> signInAsGuest({
+    required String androidId,
+    required String username,
+  });
 
   Future<Either<Failure, void>> signOut();
 

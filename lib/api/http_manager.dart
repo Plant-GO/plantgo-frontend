@@ -8,7 +8,7 @@ class HttpManager {
   HttpManager() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'https://your-backend-api.com/api/v1', // Replace with your backend URL
+        baseUrl: 'http://192.168.201.132:8080', // Replace with your backend URL
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {

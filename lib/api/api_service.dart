@@ -21,6 +21,18 @@ class ApiService {
       },
     );
   }
+  Future<Response<Map<String, dynamic>>> guestLogin({
+  required String androidId,
+  required String username,
+}) async {
+  return await _httpManager.post<Map<String, dynamic>>(
+    '/auth/guest/login',
+    data: {
+      'android_id': androidId,
+      'username': username,
+    },
+  );
+}
 
   Future<Response<Map<String, dynamic>>> register({
     required String email,
@@ -32,7 +44,7 @@ class ApiService {
       data: {
         'email': email,
         'password': password,
-        'name': name,
+        'username': name,
       },
     );
   }

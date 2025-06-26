@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:plantgo/configs/app_colors.dart';
 import 'package:plantgo/configs/app_routes.dart';
 import 'package:plantgo/presentation/blocs/auth/auth_cubit.dart';
@@ -322,15 +323,36 @@ class _LoginScreenState extends State<LoginScreen> {
                         icon: Icons.facebook,
                         color: const Color(0xFF1877F2),
                         onPressed: () {
-                          // TODO: Implement Facebook login
+                          // DEV: Directly navigate to main screen without backend
+                          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.main, (route) => false);
                         },
                       ),
                       // Google
                       _buildSocialButton(
                         icon: Icons.g_mobiledata,
                         color: const Color(0xFFDB4437),
-                        onPressed: () {
-                          // TODO: Implement Google login
+                        onPressed: () async {
+                          // Google OAuth2 login using flutter_web_auth_2
+                          try {
+                            final result = await FlutterWebAuth2.authenticate(
+                              url: 'http://192.168.201.132:8080/auth/google/login', // Use your backend URL
+                              callbackUrlScheme: 'plantgo', // Set this to your custom scheme
+                            );
+                            // Extract token from callback URL
+                            final token = Uri.parse(result).queryParameters['token'];
+                            if (token != null) {
+                              // TODO: Save token, fetch user profile, etc.
+                              // For now, just navigate to main
+                              Navigator.pushNamedAndRemoveUntil(context, AppRoutes.main, (route) => false);
+                            }
+                          } catch (e) {
+                            // Handle error or cancellation
+                            debugPrint('Google login error: $e');
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Google login failed: '
+                                  '[31m${e.toString()}[0m')),
+                            );
+                          }
                         },
                       ),
                       // Apple

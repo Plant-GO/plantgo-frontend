@@ -3,6 +3,7 @@ import 'package:plantgo/presentation/screens/splash/splash_screen.dart';
 import 'package:plantgo/presentation/screens/auth/auth_welcome_screen.dart';
 import 'package:plantgo/presentation/screens/auth/login_screen.dart';
 import 'package:plantgo/presentation/screens/auth/register_screen.dart';
+import 'package:plantgo/presentation/screens/auth/guest_login_screen.dart';
 import 'package:plantgo/presentation/screens/start_game/start_game_screen.dart';
 import 'package:plantgo/presentation/screens/main/main_screen.dart';
 import 'package:plantgo/presentation/screens/course/course_screen.dart';
@@ -17,6 +18,7 @@ class AppRoutes {
   static const String authWelcome = '/auth-welcome';
   static const String login = '/login';
   static const String register = '/register';
+  static const String guestLogin = '/guest-login';
   static const String startGame = '/start-game';
   static const String main = '/main';
   static const String course = '/course';
@@ -48,6 +50,12 @@ class AppRoutes {
       case register:
         return MaterialPageRoute(
           builder: (_) => const RegisterScreen(),
+          settings: settings,
+        );
+      
+      case guestLogin:
+        return MaterialPageRoute(
+          builder: (_) => const GuestLoginScreen(),
           settings: settings,
         );
       

@@ -16,7 +16,7 @@ class StartGameCubit extends Cubit<StartGameState> {
       emit(const StartGameLoaded(
         coins: 500,
         streaks: 5,
-        experience: 1250,
+        experience: 1350,
       ));
     } catch (e) {
       emit(StartGameError('Failed to load game data: ${e.toString()}'));
