@@ -11,6 +11,7 @@ import 'package:plantgo/presentation/screens/plant_riddle/plant_riddle_screen.da
 import 'package:plantgo/presentation/screens/map/map_screen.dart';
 import 'package:plantgo/presentation/screens/profile/profile_screen.dart';
 import 'package:plantgo/presentation/screens/streak/streak_screen.dart';
+import 'package:plantgo/presentation/screens/leaderboard/leaderboard_screen.dart';
 
 class AppRoutes {
   // Route names
@@ -26,6 +27,7 @@ class AppRoutes {
   static const String map = '/map';
   static const String profile = '/profile';
   static const String streak = '/streak';
+  static const String leaderboard = '/leaderboard';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -101,6 +103,12 @@ class AppRoutes {
       case streak:
         return MaterialPageRoute(
           builder: (_) => const StreakScreen(),
+          settings: settings,
+        );
+      
+      case leaderboard:
+        return MaterialPageRoute(
+          builder: (_) => const LeaderboardScreen(),
           settings: settings,
         );
       

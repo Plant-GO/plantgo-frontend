@@ -368,8 +368,8 @@ class _StartGameScreenState extends State<StartGameScreen>
                     _buildActionButton(
                       text: 'Leaderboard',
                       onPressed: () {
-                        context.read<StartGameCubit>().openLeaderboard();
-                        // Navigate to leaderboard screen (not implemented yet)
+                        // Navigate to leaderboard screen
+                        Navigator.pushNamed(context, AppRoutes.leaderboard);
                       },
                       isPrimary: false,
                     ),

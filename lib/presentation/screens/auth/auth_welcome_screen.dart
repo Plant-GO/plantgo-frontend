@@ -4,6 +4,7 @@ import 'package:plantgo/configs/app_routes.dart';
 import 'package:plantgo/presentation/blocs/auth/auth_cubit.dart';
 import 'package:plantgo/presentation/blocs/auth/auth_state.dart';
 import 'package:plantgo/configs/app_colors.dart';
+import 'package:plantgo/core/constants/app_images.dart';
 
 class AuthWelcomeScreen extends StatelessWidget {
   const AuthWelcomeScreen({Key? key}) : super(key: key);
@@ -49,7 +50,7 @@ class AuthWelcomeScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
                       image: const DecorationImage(
-                        image: AssetImage('assets/background/background.jpg'),
+                        image: AssetImage(AppImages.background),
                         fit: BoxFit.cover,
                         opacity: 0.3,
                       ),

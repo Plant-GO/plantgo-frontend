@@ -83,13 +83,6 @@ class _MapScreenState extends State<MapScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showPlantCaptureBottomSheet(context);
-        },
-        tooltip: 'Capture Plant',
-        child: const Icon(Icons.camera_alt),
-      ),
     );
   }
 
@@ -195,54 +188,6 @@ class _MapScreenState extends State<MapScreen> {
             child: const Text("Close"),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showPlantCaptureBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Add a Plant',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take Photo'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Implement camera capture
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Camera feature coming soon!'),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Implement gallery selection
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Gallery feature coming soon!'),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 class AppImages {
   // Background Images
-  static const String background = 'assets/background/background.jpg';
+  static const String background = 'assets/background/background.png';
+  static const String riddleBackground = 'assets/background/riddle_background.png';
   
   // Icons
   static const String centerIcon = 'assets/icons/center.png';

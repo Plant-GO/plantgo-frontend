@@ -9,8 +9,8 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_auth
   firebase_core
   geolocator_windows
-  url_launcher_windows
-  window_to_front
+  permission_handler_windows
+  rive_common
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
