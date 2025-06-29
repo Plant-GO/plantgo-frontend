@@ -2,6 +2,7 @@ class AppImages {
   // Background Images
   static const String background = 'assets/background/background.png';
   static const String riddleBackground = 'assets/background/riddle_background.png';
+  static const String startGame = 'assets/background/Start_game.jpeg';
   
   // Icons
   static const String centerIcon = 'assets/icons/center.png';
@@ -16,6 +17,11 @@ class AppImages {
   static const String profileActive = 'assets/icons/profile_active.png';
   static const String profile = 'assets/icons/profile.png';
   static const String clouds = 'assets/icons/cloud.png';
+  static const String plantgo = 'assets/icons/Plantgo.png';
+  
+  // Bird Images
+  static const String birds1 = 'assets/icons/birds1.png';
+  static const String birds2 = 'assets/icons/birds2.png';
   
   // Mascot Images
   static const String mascots = 'assets/mascot/mascots.png';

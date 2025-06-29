@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plantgo/configs/app_colors.dart';
 import 'package:plantgo/configs/app_routes.dart';
-import 'package:plantgo/core/constants/app_images.dart';
 import 'package:plantgo/presentation/blocs/start_game/start_game_cubit.dart';
 import 'package:plantgo/presentation/blocs/start_game/start_game_state.dart';
 import 'package:plantgo/presentation/screens/explore/explore_screen.dart';
@@ -11,24 +10,18 @@ import 'package:plantgo/presentation/screens/notifications/notifications_screen.
 import 'package:plantgo/presentation/screens/profile/profile_screen.dart';
 import 'package:plantgo/presentation/blocs/map/map_cubit.dart';
 import 'package:plantgo/presentation/blocs/profile/profile_cubit.dart';
+import 'package:plantgo/presentation/animations/animations.dart';
+import 'package:plantgo/core/constants/app_images.dart';
+import 'package:plantgo/core/services/audio_service.dart';
 
 class StartGameScreen extends StatefulWidget {
-  const StartGameScreen({Key? key}) : super(key: key);
+  const StartGameScreen({super.key});
 
   @override
   State<StartGameScreen> createState() => _StartGameScreenState();
-}
+} 
 
-class _StartGameScreenState extends State<StartGameScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _cloudAnimationController;
-  late AnimationController _characterAnimationController;
-  late AnimationController _starAnimationController;
-  late Animation<Offset> _cloudAnimation1;
-  late Animation<Offset> _cloudAnimation2;
-  late Animation<double> _characterBounce;
-  late List<Animation<double>> _starTwinkleAnimations;
-  
+class _StartGameScreenState extends State<StartGameScreen> {
   int _selectedIndex = 0;
   late final List<Widget> _screens;
 
@@ -41,11 +34,21 @@ class _StartGameScreenState extends State<StartGameScreen>
       const NotificationsScreen(),
       const ProfileScreen(),
     ];
-    _initializeAnimations();
     context.read<StartGameCubit>().loadStartGameData();
-    
     // Initialize BLoCs
     context.read<ProfileCubit>().loadProfile();
+    // Play background music once user reaches start game screen
+    AudioService.instance.playBackgroundMusic();
+  }
+
+  // Add safe animation wrapper
+  Widget _buildSafeAnimationWrapper(Widget Function() animationBuilder) {
+    try {
+      return animationBuilder();
+    } catch (e) {
+      print('Animation error: $e');
+      return const SizedBox.shrink(); // Return empty widget on error
+    }
   }
 
   Widget _buildStartGameContent() {
@@ -63,70 +66,6 @@ class _StartGameScreenState extends State<StartGameScreen>
         );
       },
     );
-  }
-
-  void _initializeAnimations() {
-    // Cloud floating animation
-    _cloudAnimationController = AnimationController(
-      duration: const Duration(seconds: 8),
-      vsync: this,
-    );
-
-    _cloudAnimation1 = Tween<Offset>(
-      begin: const Offset(-0.1, 0),
-      end: const Offset(0.1, 0),
-    ).animate(CurvedAnimation(
-      parent: _cloudAnimationController,
-      curve: Curves.easeInOut,
-    ));
-
-    _cloudAnimation2 = Tween<Offset>(
-      begin: const Offset(0.1, 0),
-      end: const Offset(-0.1, 0),
-    ).animate(CurvedAnimation(
-      parent: _cloudAnimationController,
-      curve: Curves.easeInOut,
-    ));
-
-    // Character bounce animation
-    _characterAnimationController = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    );
-
-    _characterBounce = Tween<double>(
-      begin: 0,
-      end: 10,
-    ).animate(CurvedAnimation(
-      parent: _characterAnimationController,
-      curve: Curves.elasticInOut,
-    ));
-
-    // Star twinkling animation
-    _starAnimationController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    );
-
-    // Create different twinkling animations for each star with different delays
-    _starTwinkleAnimations = List.generate(8, (index) {
-      return Tween<double>(
-        begin: 0.1,
-        end: 0.8,
-      ).animate(CurvedAnimation(
-        parent: _starAnimationController,
-        curve: Interval(
-          (index * 0.125), // Stagger the start times
-          1.0,
-          curve: Curves.easeInOut,
-        ),
-      ));
-    });
-
-    // Start animations
-    _cloudAnimationController.repeat(reverse: true);
-    _characterAnimationController.repeat(reverse: true);
-    _starAnimationController.repeat(reverse: true);
   }
 
   void _onItemTapped(int index) {
@@ -147,38 +86,52 @@ class _StartGameScreenState extends State<StartGameScreen>
   }
 
   @override
-  void dispose() {
-    _cloudAnimationController.dispose();
-    _characterAnimationController.dispose();
-    _starAnimationController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: _selectedIndex == 0 
         ? Stack(
             children: [
-              // Background gradient
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF1a3a2e),
-                      Color(0xFF16302c),
-                      Color(0xFF0f241f),
-                    ],
+              // Background image
+              Positioned.fill(
+                child: Image.asset(
+                  AppImages.startGame,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              // Background animation elements - only clouds and birds
+              const BackgroundAnimationElements(),
+              // Header (coins & leaves) pinned to top
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: BlocBuilder<StartGameCubit, StartGameState>(
+                    builder: (context, state) => _buildHeader(state),
                   ),
                 ),
               ),
-              // Background stars/sparkles
-              _buildBackgroundElements(),
+              // PlantGo Title
+              _buildSafeAnimationWrapper(() => GameTitleAnimation(
+                title: 'PlantGo',
+                imageWidth: 420,
+                imageHeight: 300,
+                top: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+              )),
+              // Flying bird animations
+              const FlyingBirdAnimation(top: 240, left: 0, birdSize: 80 , floatDuration: 9,),
+              const FlyingBirdAnimation(top: 280, right: 70, birdSize: 60, floatDuration: 12,),
+              const FlyingBirdAnimation(top: 360, left: 0, birdSize: 80,floatDuration: 5,),
+              const FlyingBirdAnimation(top: 280, left: 0, birdSize: 40,floatDuration: 4,),
+              const FlyingBirdAnimation(top: 320, left: 0, birdSize: 50,floatDuration: 7,),
               // Main content
-              _buildStartGameContent(),
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 140, // Start after title
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _buildMainContentWithoutTitle(),
+              ),
             ],
           )
         : IndexedStack(
@@ -201,69 +154,10 @@ class _StartGameScreenState extends State<StartGameScreen>
     );
   }
 
-  Widget _buildBackgroundElements() {
-    return Positioned.fill(
-      child: AnimatedBuilder(
-        animation: _cloudAnimationController,
-        builder: (context, child) {
-          return Stack(
-            children: [
-              // Floating clouds
-              Positioned(
-                top: 100,
-                left: 30,
-                child: SlideTransition(
-                  position: _cloudAnimation1,
-                  child: Image.asset(
-                    AppImages.clouds,
-                    width: 100,
-                    height: 60,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 180,
-                right: 80,
-                child: SlideTransition(
-                  position: _cloudAnimation2,
-                  child: Image.asset(
-                    AppImages.clouds,
-                    width: 60,
-                    height: 30,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-              // Sparkles/stars
-              ...List.generate(
-                8,
-                (index) => Positioned(
-                  top: 80 + (index * 50.0),
-                  left: 30 + (index % 3) * 120.0,
-                  child: AnimatedBuilder(
-                    animation: _starTwinkleAnimations[index],
-                    builder: (context, child) {
-                      return Icon(
-                        Icons.star,
-                        color: Colors.white.withOpacity(_starTwinkleAnimations[index].value),
-                        size: 12 + (index % 3) * 4,
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
   Widget _buildHeader(StartGameState state) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(8.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -321,33 +215,19 @@ class _StartGameScreenState extends State<StartGameScreen>
   Widget _buildMainContent() {
     return Column(
       children: [
-        // PlantGo Title
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
-              colors: [
-                AppColors.primary,
-                AppColors.maskGreen,
-                AppColors.bee,
-              ],
-            ).createShader(bounds),
-            child: const Text(
-              'PlantGo',
-              style: TextStyle(
-                fontSize: 48,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                fontFamily: 'Poppins',
-              ),
-            ),
-          ),
-        ),
         // Game Island/Map with Action Buttons
         Expanded(
           child: Stack(
             children: [
               _buildGameIsland(),
+              // PlantGo Title with animation
+              _buildSafeAnimationWrapper(() => const GameTitleAnimation(
+                title: 'PlantGo',
+                imageWidth: 280,
+                imageHeight: 140,
+                top: 60,
+                padding: EdgeInsets.symmetric(horizontal: 20),
+              )),
               // Action Buttons positioned at bottom right
               Positioned(
                 bottom: 80,
@@ -383,80 +263,109 @@ class _StartGameScreenState extends State<StartGameScreen>
     );
   }
 
-  Widget _buildGameIsland() {
-    return AnimatedBuilder(
-      animation: _characterAnimationController,
-      builder: (context, child) {
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          child: Stack(
-            children: [
-              // Island/Map background
-              Center(
-                child: Container(
-                  width: double.infinity,
-                  height: 300,
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: Alignment.center,
-                      radius: 0.8,
-                      colors: [
-                        AppColors.primary.withOpacity(0.3),
-                        AppColors.background.withOpacity(0.1),
+  Widget _buildMainContentWithoutTitle() {
+    return BlocBuilder<StartGameCubit, StartGameState>(
+      builder: (context, state) {
+        return Column(
+          children: [
+            // Main content area without title or header
+            Expanded(
+              child: Column(
+                children: [
+                  // Game Island/Map with Action Buttons
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        _buildGameIsland(),
+                        // Action Buttons positioned at bottom right
+                        Positioned(
+                          bottom: 80,
+                          right: 24,
+                          child: Column(
+                            children: [
+                              // Start Game Button
+                              _buildActionButton(
+                                text: 'Start game',
+                                onPressed: () {
+                                  context.read<StartGameCubit>().startGame();
+                                  Navigator.pushReplacementNamed(context, AppRoutes.main);
+                                },
+                                isPrimary: true,
+                              ),
+                              const SizedBox(height: 12),
+                              // Leaderboard Button
+                              _buildActionButton(
+                                text: 'Leaderboard',
+                                onPressed: () {
+                                  // Navigate to leaderboard screen
+                                  Navigator.pushNamed(context, AppRoutes.leaderboard);
+                                },
+                                isPrimary: false,
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(150),
                   ),
-                  child: Stack(
-                    children: [
-                      // Trees/Foliage
-                      ...List.generate(
-                        6,
-                        (index) => Positioned(
-                          top: 50 + (index % 3) * 80.0,
-                          left: 30 + (index % 2) * 200.0,
-                          child: Icon(
-                            Icons.park,
-                            color: AppColors.primary.withOpacity(0.6),
-                            size: 40 + (index % 3) * 10,
-                          ),
-                        ),
-                      ),
-                      // Paths
-                      Positioned(
-                        top: 100,
-                        left: 50,
-                        right: 50,
-                        child: Container(
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: Colors.brown.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
-              // Character
-              Positioned(
-                bottom: 30,
-                left: 4,
-                child: Transform.translate(
-                  offset: Offset(0, _characterBounce.value),
-                  child: Image.asset(
-                    AppImages.mascots,
-                    width: 180, // Reduced width to avoid overlap with buttons
-                    height: 300, // Proportionally reduced height
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildGameIsland() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: Stack(
+        children: [
+          // Island/Map background
+          // Center(
+          //   child: Container(
+          //     width: double.infinity,
+          //     height: 300,
+          //     decoration: BoxDecoration(
+          //       gradient: RadialGradient(
+          //         center: Alignment.center,
+          //         radius: 0.8,
+          //         colors: [
+          //           AppColors.primary.withOpacity(0.3),
+          //           AppColors.background.withOpacity(0.1),
+          //         ],
+          //       ),
+          //       borderRadius: BorderRadius.circular(150),
+          //     ),
+          //     child: Stack(
+          //       children: [
+          //         // Paths
+          //         Positioned(
+          //           top: 100,
+          //           left: 50,
+          //           right: 50,
+          //           child: Container(
+          //             height: 3,
+          //             decoration: BoxDecoration(
+          //               color: Colors.brown.withOpacity(0.3),
+          //               borderRadius: BorderRadius.circular(2),
+          //             ),
+          //           ),
+          //         ),
+          //       ],
+          //     ),
+          //   ),
+          // ),
+          // Character with animation
+          _buildSafeAnimationWrapper(() => const MascotAnimation(
+            width: 180,
+            height: 300,
+            bottom: 30,
+            left: 4,
+          )),
+        ],
+      ),
     );
   }
 
@@ -506,8 +415,7 @@ class _StartGameScreenState extends State<StartGameScreen>
 
   Widget _buildBottomNavigation() {
     return BottomAppBar(
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8.0,
+      // notch removed
       color: AppColors.bottomNavBackground,
       child: Container(
         height: 60,

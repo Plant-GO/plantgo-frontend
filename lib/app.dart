@@ -9,9 +9,27 @@ import 'package:plantgo/presentation/blocs/map/map_cubit.dart';
 import 'package:plantgo/presentation/blocs/notifications/notifications_cubit.dart';
 import 'package:plantgo/presentation/blocs/profile/profile_cubit.dart';
 import 'package:plantgo/presentation/blocs/start_game/start_game_cubit.dart';
+import 'package:plantgo/core/services/audio_service.dart';
 
-class PlantGoApp extends StatelessWidget {
+class PlantGoApp extends StatefulWidget {
   const PlantGoApp({super.key});
+
+  @override
+  State<PlantGoApp> createState() => _PlantGoAppState();
+}
+
+class _PlantGoAppState extends State<PlantGoApp> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    // Stop background audio when app is disposed
+    AudioService.instance.stopBackgroundMusic();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
