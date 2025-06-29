@@ -1,6 +1,8 @@
 import 'package:get_it/get_it.dart';
 import 'package:plantgo/api/api_service.dart';
 import 'package:plantgo/api/http_manager.dart';
+import 'package:plantgo/services/plant_scanner_service.dart';
+import 'package:plantgo/services/ip_settings_service.dart';
 import 'package:plantgo/presentation/blocs/auth/auth_cubit.dart';
 import 'package:plantgo/presentation/blocs/course/course_cubit.dart';
 import 'package:plantgo/presentation/blocs/map/map_cubit.dart';
@@ -29,6 +31,8 @@ Future<void> configureDependencies() async {
   
   // API Services
   getIt.registerLazySingleton<ApiService>(() => ApiService(getIt<HttpManager>()));
+  getIt.registerLazySingleton<PlantScannerService>(() => PlantScannerService(getIt<ApiService>()));
+  getIt.registerLazySingleton<IPSettingsService>(() => IPSettingsService(getIt<HttpManager>()));
   
   // Repositories
   getIt.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(getIt<ApiService>()));
@@ -62,7 +66,7 @@ Future<void> configureDependencies() async {
     getIt<ImageService>(),
   ));
   getIt.registerFactory<NotificationsCubit>(() => NotificationsCubit(getIt<ApiService>()));
-  getIt.registerFactory<ScannerCubit>(() => ScannerCubit(getIt<ApiService>()));
+  getIt.registerFactory<ScannerCubit>(() => ScannerCubit(getIt<PlantScannerService>()));
   getIt.registerFactory<RiddleBloc>(() => RiddleBloc(
     getRiddleByLevelUseCase: getIt<GetRiddleByLevelUseCase>(),
     getActiveRiddlesUseCase: getIt<GetActiveRiddlesUseCase>(),

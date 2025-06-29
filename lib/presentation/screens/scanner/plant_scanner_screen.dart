@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:web_socket_channel/io.dart';
-import 'dart:convert';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:plantgo/configs/app_colors.dart';
+import 'package:plantgo/presentation/blocs/scanner/scanner_cubit.dart';
+import 'package:plantgo/presentation/blocs/scanner/scanner_state.dart';
 
 class PlantScannerScreen extends StatefulWidget {
   const PlantScannerScreen({Key? key}) : super(key: key);
@@ -16,7 +16,6 @@ class PlantScannerScreen extends StatefulWidget {
 
 class _PlantScannerScreenState extends State<PlantScannerScreen>
     with TickerProviderStateMixin {
-  CameraController? _cameraController;
   
   // Animation controllers
   late AnimationController _scanAnimationController;
@@ -32,25 +31,17 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
   late Animation<double> _rippleAnimation;
   late Animation<double> _particleAnimation;
   
-  // WebSocket and state
-  WebSocketChannel? _webSocketChannel;
-  bool _isConnected = false;
-  bool _isScanning = false;
-  bool _isStreaming = false;
-  String? _scanResult;
-  bool _isInitialized = false;
-  double _confidence = 0.0;
-  
   // Visual effects
   final List<Particle> _particles = [];
   
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
     _initializeAnimations();
-    _initializeWebSocket();
     _generateParticles();
+    
+    // Initialize scanner cubit
+    context.read<ScannerCubit>().initializeScanner();
   }
 
   void _initializeAnimations() {
@@ -137,127 +128,29 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
     }
   }
 
-  void _initializeWebSocket() {
-    try {
-      // Replace with your Go backend WebSocket URL
-      _webSocketChannel = IOWebSocketChannel.connect('ws://localhost:8080/ws');
-      
-      // Listen for messages from the server
-      _webSocketChannel!.stream.listen(
-        (data) {
-          try {
-            final Map<String, dynamic> message = json.decode(data);
-            
-            if (message['type'] == 'plant_identified') {
-              setState(() {
-                _scanResult = message['plantName'];
-                _confidence = (message['confidence'] ?? 0.0).toDouble();
-                _isScanning = false;
-                _isStreaming = false;
-              });
-              _stopAllAnimations();
-              _showSuccessAnimation();
-            } else if (message['type'] == 'scanning_progress') {
-              setState(() {
-                _confidence = (message['confidence'] ?? 0.0).toDouble();
-              });
-            }
-          } catch (e) {
-            print('Error parsing WebSocket message: $e');
-          }
-        },
-        onError: (error) {
-          print('WebSocket error: $error');
-          setState(() {
-            _isConnected = false;
-          });
-        },
-        onDone: () {
-          print('WebSocket connection closed');
-          setState(() {
-            _isConnected = false;
-          });
-        },
-      );
-      
-      setState(() {
-        _isConnected = true;
-      });
-    } catch (e) {
-      print('Failed to connect to WebSocket: $e');
-      setState(() {
-        _isConnected = false;
-      });
-    }
-  }
-
-  Future<void> _initializeCamera() async {
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        print('No cameras available');
-        return;
-      }
-      
-      final camera = cameras.first;
-      
-      _cameraController = CameraController(
-        camera,
-        ResolutionPreset.high,
-        enableAudio: false,
-      );
-      
-      await _cameraController!.initialize();
-      setState(() {
-        _isInitialized = true;
-      });
-    } catch (e) {
-      print('Error initializing camera: $e');
-      // Show error message to user
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Camera initialization failed: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
-
   void _startScanning() {
-    setState(() {
-      _isScanning = true;
-      _isStreaming = true;
-      _scanResult = null;
-      _confidence = 0.0;
-    });
-    
     // Start animations with staggered timing for better visual effect
     _scanAnimationController.repeat(reverse: true);
     
     Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted && _isScanning) {
+      if (mounted) {
         _pulseAnimationController.repeat(reverse: true);
       }
     });
     
     Future.delayed(const Duration(milliseconds: 400), () {
-      if (mounted && _isScanning) {
+      if (mounted) {
         _rippleAnimationController.repeat();
       }
     });
     
-    _startFrameStreaming();
+    // Start scanning using the cubit
+    context.read<ScannerCubit>().startScanning();
   }
 
   void _stopScanning() {
-    setState(() {
-      _isScanning = false;
-      _isStreaming = false;
-    });
-    
     _stopAllAnimations();
+    context.read<ScannerCubit>().stopScanning();
   }
 
   void _stopAllAnimations() {
@@ -282,97 +175,136 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
     });
   }
 
-  void _startFrameStreaming() async {
-    if (!_isStreaming || _cameraController == null || !_isConnected) return;
-    
-    try {
-      final image = await _cameraController!.takePicture();
-      final bytes = await image.readAsBytes();
-      final base64Image = base64Encode(bytes);
-      
-      final message = json.encode({
-        'type': 'video_frame',
-        'frame': base64Image,
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-        'sessionId': 'session_${DateTime.now().millisecondsSinceEpoch}',
-      });
-      
-      _webSocketChannel!.sink.add(message);
-      
-      // Continue streaming at 2 FPS
-      if (_isStreaming) {
-        Future.delayed(const Duration(milliseconds: 500), _startFrameStreaming);
-      }
-    } catch (e) {
-      print('Error streaming frame: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (!_isInitialized || _cameraController == null) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return BlocConsumer<ScannerCubit, ScannerState>(
+      listener: (context, state) {
+        if (state is ScannerSuccess) {
+          _showSuccessAnimation();
+        } else if (state is ScannerError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      builder: (context, state) {
+        if (state is ScannerInitial || state is ScannerInitializing) {
+          return Scaffold(
+            backgroundColor: Colors.black,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, AppColors.accent],
+                      ),
+                    ),
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 3,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Initializing Plant Scanner...',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        if (state is ScannerError) {
+          return Scaffold(
+            backgroundColor: Colors.black,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 64,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Scanner Error',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    state.message,
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<ScannerCubit>().initializeScanner();
+                    },
+                    child: Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final cameraController = context.read<ScannerCubit>().cameraController;
+        final isScanning = state is ScannerScanning;
+        final confidence = state is ScannerScanning ? state.confidence : 0.0;
+        final scanResult = state is ScannerSuccess ? state : null;
+
+        return Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [AppColors.primary, AppColors.accent],
-                  ),
+              // Camera preview
+              if (cameraController != null)
+                Positioned.fill(
+                  child: CameraPreview(cameraController),
                 ),
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 3,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Initializing Plant Scanner...',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              
+              // Animated particles
+              _buildParticleSystem(),
+              
+              // Scanning overlay with animations
+              _buildScanningOverlay(isScanning, confidence),
+              
+              // Top controls
+              _buildTopControls(),
+              
+              // Bottom controls
+              _buildBottomControls(isScanning),
+              
+              // Scan result
+              if (scanResult != null) _buildScanResult(scanResult),
             ],
           ),
-        ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Camera preview
-          Positioned.fill(
-            child: CameraPreview(_cameraController!),
-          ),
-          
-          // Animated particles
-          _buildParticleSystem(),
-          
-          // Scanning overlay with animations
-          _buildScanningOverlay(),
-          
-          // Top controls
-          _buildTopControls(),
-          
-          // Bottom controls
-          _buildBottomControls(),
-          
-          // Scan result
-          if (_scanResult != null) _buildScanResult(),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -388,7 +320,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
     );
   }
 
-  Widget _buildScanningOverlay() {
+  Widget _buildScanningOverlay(bool isScanning, double confidence) {
     return Positioned.fill(
       child: AnimatedBuilder(
         animation: Listenable.merge([
@@ -405,12 +337,12 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
             child: Stack(
               children: [
                 // Ripple effects
-                if (_isScanning) _buildRippleEffects(),
+                if (isScanning) _buildRippleEffects(),
                 
                 // Main scan area
                 Center(
                   child: Transform.scale(
-                    scale: _isScanning ? _pulseAnimation.value : 1.0,
+                    scale: isScanning ? _pulseAnimation.value : 1.0,
                     child: Container(
                       width: 280,
                       height: 280,
@@ -434,7 +366,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
                           Container(
                             decoration: BoxDecoration(
                               border: Border.all(
-                                color: _isScanning 
+                                color: isScanning 
                                     ? AppColors.primary.withOpacity(0.8)
                                     : Colors.white.withOpacity(0.6),
                                 width: 3,
@@ -444,13 +376,13 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
                           ),
                           
                           // Corner indicators with animation
-                          ..._buildAnimatedCornerIndicators(),
+                          ..._buildAnimatedCornerIndicators(isScanning),
                           
                           // Scanning line with enhanced effect
-                          if (_isScanning) _buildScanningLine(),
+                          if (isScanning) _buildScanningLine(),
                           
                           // Progress indicator
-                          if (_isScanning && _confidence > 0) _buildProgressIndicator(),
+                          if (isScanning && confidence > 0) _buildProgressIndicator(confidence),
                         ],
                       ),
                     ),
@@ -458,7 +390,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
                 ),
                 
                 // Status text
-                _buildStatusText(),
+                _buildStatusText(isScanning, confidence),
               ],
             ),
           );
@@ -482,7 +414,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
     );
   }
 
-  List<Widget> _buildAnimatedCornerIndicators() {
+  List<Widget> _buildAnimatedCornerIndicators(bool isScanning) {
     final cornerSize = 45.0 * _breatheAnimation.value;
     final cornerThickness = 6.0;
     final cornerOpacity = 0.7 + (0.3 * _breatheAnimation.value);
@@ -664,7 +596,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
     );
   }
 
-  Widget _buildProgressIndicator() {
+  Widget _buildProgressIndicator(double confidence) {
     return Positioned(
       bottom: 20,
       left: 20,
@@ -686,7 +618,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
             child: ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: _confidence,
+                value: confidence,
                 backgroundColor: Colors.white.withOpacity(0.2),
                 valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
                 minHeight: 8,
@@ -705,7 +637,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
               ),
             ),
             child: Text(
-              'Analyzing: ${(_confidence * 100).toInt()}%',
+              'Analyzing: ${(confidence * 100).toInt()}%',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,
@@ -719,7 +651,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
     );
   }
 
-  Widget _buildStatusText() {
+  Widget _buildStatusText(bool isScanning, double confidence) {
     return Positioned(
       top: MediaQuery.of(context).size.height * 0.25,
       left: 0,
@@ -729,10 +661,10 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 500),
             child: Text(
-              _isScanning 
+              isScanning 
                   ? 'Scanning plant...' 
                   : 'Position plant in the scan area',
-              key: ValueKey(_isScanning),
+              key: ValueKey(isScanning),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
@@ -749,7 +681,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
             ),
           ),
           const SizedBox(height: 8),
-          if (!_isScanning)
+          if (!isScanning)
             const Text(
               'Tap the scan button to identify the plant',
               textAlign: TextAlign.center,
@@ -818,7 +750,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
     );
   }
 
-  Widget _buildBottomControls() {
+  Widget _buildBottomControls(bool isScanning) {
     return Positioned(
       bottom: MediaQuery.of(context).padding.bottom + 40,
       left: 0,
@@ -827,7 +759,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
         children: [
           // Scan button with enhanced animation
           GestureDetector(
-            onTap: _isScanning ? _stopScanning : _startScanning,
+            onTap: isScanning ? _stopScanning : _startScanning,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               width: 90,
@@ -835,7 +767,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: _isScanning 
+                  colors: isScanning 
                       ? [Colors.red.shade400, Colors.red.shade600]
                       : [AppColors.primary, AppColors.accent],
                   begin: Alignment.topLeft,
@@ -844,7 +776,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
                 border: Border.all(color: Colors.white, width: 4),
                 boxShadow: [
                   BoxShadow(
-                    color: (_isScanning ? Colors.red : AppColors.primary)
+                    color: (isScanning ? Colors.red : AppColors.primary)
                         .withOpacity(0.5),
                     blurRadius: 20,
                     spreadRadius: 5,
@@ -852,7 +784,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
                 ],
               ),
               child: Icon(
-                _isScanning ? Icons.stop : Icons.center_focus_strong,
+                isScanning ? Icons.stop : Icons.center_focus_strong,
                 color: Colors.white,
                 size: 45,
               ),
@@ -864,8 +796,8 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             child: Text(
-              _isScanning ? 'Tap to stop scanning' : 'Tap to start scanning',
-              key: ValueKey(_isScanning),
+              isScanning ? 'Tap to stop scanning' : 'Tap to start scanning',
+              key: ValueKey(isScanning),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -885,7 +817,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
     );
   }
 
-  Widget _buildScanResult() {
+  Widget _buildScanResult(ScannerSuccess scanResult) {
     return Positioned(
       bottom: 180,
       left: 20,
@@ -954,7 +886,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              _scanResult!,
+              scanResult.plantName,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -970,7 +902,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
                 borderRadius: BorderRadius.circular(15),
               ),
               child: Text(
-                'Confidence: ${(_confidence * 100).toInt()}%',
+                'Confidence: ${(scanResult.confidence * 100).toInt()}%',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
@@ -985,8 +917,8 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
                   child: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.pop(context, {
-                        'plantName': _scanResult!,
-                        'confidence': _confidence,
+                        'plantName': scanResult.plantName,
+                        'confidence': scanResult.confidence,
                       });
                     },
                     style: ElevatedButton.styleFrom(
@@ -1013,10 +945,7 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
                 const SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: () {
-                    setState(() {
-                      _scanResult = null;
-                      _confidence = 0.0;
-                    });
+                    context.read<ScannerCubit>().resetScanner();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white.withOpacity(0.2),
@@ -1049,13 +978,11 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
 
   @override
   void dispose() {
-    _cameraController?.dispose();
     _scanAnimationController.dispose();
     _pulseAnimationController.dispose();
     _breatheAnimationController.dispose();
     _rippleAnimationController.dispose();
     _particleAnimationController.dispose();
-    _webSocketChannel?.sink.close();
     super.dispose();
   }
 }

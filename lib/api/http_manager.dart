@@ -1,14 +1,19 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
+import 'package:plantgo/core/constants/app_constants.dart';
 
 @singleton
 class HttpManager {
-  late final Dio _dio;
+  late Dio _dio;
 
   HttpManager() {
+    _initializeDio();
+  }
+
+  void _initializeDio() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'http://localhost:8080', // Local Go backend
+        baseUrl: AppConstants.baseUrl,
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {
@@ -19,6 +24,12 @@ class HttpManager {
     );
 
     _initializeInterceptors();
+  }
+
+  // Method to update base URL and reinitialize Dio
+  void updateBaseUrl(String newBaseUrl) {
+    _dio.options.baseUrl = newBaseUrl;
+    print('HttpManager: Base URL updated to $newBaseUrl');
   }
 
   void _initializeInterceptors() {

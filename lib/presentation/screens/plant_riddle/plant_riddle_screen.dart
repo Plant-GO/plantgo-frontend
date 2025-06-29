@@ -7,6 +7,7 @@ import 'package:plantgo/presentation/blocs/map/map_state.dart';
 import 'package:plantgo/presentation/blocs/riddle/riddle_bloc.dart';
 import 'package:plantgo/presentation/blocs/riddle/riddle_event.dart';
 import 'package:plantgo/presentation/blocs/riddle/riddle_state.dart';
+import 'package:plantgo/presentation/blocs/scanner/scanner_cubit.dart';
 import 'package:plantgo/presentation/screens/scanner/plant_scanner_screen.dart';
 
 class PlantRiddleScreen extends StatefulWidget {
@@ -420,7 +421,10 @@ class _PlantRiddleScreenState extends State<PlantRiddleScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const PlantScannerScreen(),
+        builder: (context) => BlocProvider<ScannerCubit>(
+          create: (context) => getIt<ScannerCubit>(),
+          child: const PlantScannerScreen(),
+        ),
       ),
     );
   }

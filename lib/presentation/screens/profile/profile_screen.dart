@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plantgo/presentation/blocs/profile/profile_cubit.dart';
 import 'package:plantgo/presentation/blocs/profile/profile_state.dart';
 import 'package:plantgo/presentation/screens/streak/streak_screen.dart';
+import 'package:plantgo/presentation/screens/profile/ip_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -144,6 +145,20 @@ class ProfileScreen extends StatelessWidget {
                   () {
                     // TODO: Navigate to Settings page
                   },
+                ),
+                _buildProfileOption(
+                  context,
+                  Icons.router,
+                  "Server Settings",
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const IPSettingsScreen(),
+                      ),
+                    );
+                  },
+                  iconColor: Colors.blue,
                 ),
                 _buildProfileOption(
                   context,

@@ -1,7 +1,21 @@
 class AppConstants {
-  // API Constants
-  static const String baseUrl = 'YOUR_API_BASE_URL'; // Replace with your backend URL
+  // API Constants - Go Backend
+  static String _baseUrl = 'http://localhost:8080'; // Default Go backend server
+  static String _webSocketUrl = 'ws://localhost:8080'; // Default WebSocket base URL
   static const String apiVersion = 'v1';
+  
+  // Getters for dynamic URLs
+  static String get baseUrl => _baseUrl;
+  static String get webSocketUrl => _webSocketUrl;
+  
+  // Method to update base URLs dynamically
+  static void updateServerIP(String ipAddress, {int port = 8080}) {
+    _baseUrl = 'http://$ipAddress:$port';
+    _webSocketUrl = 'ws://$ipAddress:$port';
+  }
+  
+  // Development Mode - Set to true when Go backend is not available
+  static const bool isDevelopmentMode = true; // Set to false in production
   
   // Timeout Constants
   static const int connectionTimeOut = 30000;
@@ -28,4 +42,9 @@ class AppConstants {
   static const String userTokenKey = 'user_token';
   static const String userDataKey = 'user_data';
   static const String settingsKey = 'app_settings';
+
+  // Scanner Constants for Go Backend
+  static const String scanImageEndpoint = '/scan/image';
+  static const String scanVideoEndpoint = '/scan/video';
+  static const int scanFrameRate = 2; // FPS for video streaming
 }
