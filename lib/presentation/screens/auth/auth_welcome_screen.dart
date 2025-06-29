@@ -167,8 +167,7 @@ class AuthWelcomeScreen extends StatelessWidget {
                             height: 56,
                             child: TextButton(
                               onPressed: () {
-                                // Navigate to start game screen as guest
-                                Navigator.pushReplacementNamed(context, AppRoutes.startGame);
+                                Navigator.pushNamed(context, AppRoutes.guestLogin);
                               },
                               style: TextButton.styleFrom(
                                 foregroundColor: Colors.white70,

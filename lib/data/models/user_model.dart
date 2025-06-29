@@ -36,9 +36,9 @@ class UserModel {
   // Convert Firestore document to UserModel
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
-      id: map['id'] ?? '',
+      id: map['id'].toString(),
       email: map['email'] ?? '',
-      fullName: map['fullName'] ?? '',
+      fullName: map['username'] ?? '',
       profileImageUrl: map['profileImageUrl'],
       createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
       updatedAt: DateTime.parse(map['updatedAt'] ?? DateTime.now().toIso8601String()),
