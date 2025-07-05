@@ -15,7 +15,7 @@ class AuthWelcomeScreen extends StatelessWidget {
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {
-            Navigator.pushReplacementNamed(context, AppRoutes.main);
+            Navigator.pushReplacementNamed(context, AppRoutes.startGame);
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

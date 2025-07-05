@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
           if (state is AuthAuthenticated) {
             Navigator.pushNamedAndRemoveUntil(
               context,
-              AppRoutes.main,
+              AppRoutes.startGame,
               (route) => false,
             );
           } else if (state is AuthError) {
@@ -324,7 +324,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: const Color(0xFF1877F2),
                         onPressed: () {
                           // DEV: Directly navigate to main screen without backend
-                          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.main, (route) => false);
+                          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.startGame, (route) => false);
                         },
                       ),
                       // Google
@@ -343,7 +343,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (token != null) {
                               // TODO: Save token, fetch user profile, etc.
                               // For now, just navigate to main
-                              Navigator.pushNamedAndRemoveUntil(context, AppRoutes.main, (route) => false);
+                              Navigator.pushNamedAndRemoveUntil(context, AppRoutes.startGame, (route) => false);
                             }
                           } catch (e) {
                             // Handle error or cancellation
