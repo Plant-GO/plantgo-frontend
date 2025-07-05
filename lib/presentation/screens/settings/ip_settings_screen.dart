@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:plantgo/core/dependency_injection.dart';
 import 'package:plantgo/services/ip_settings_service.dart';
 import 'package:plantgo/configs/app_colors.dart';
+import 'package:plantgo/configs/app_routes.dart';
 
 class IPSettingsScreen extends StatefulWidget {
   const IPSettingsScreen({Key? key}) : super(key: key);
@@ -135,13 +136,10 @@ class _IPSettingsScreenState extends State<IPSettingsScreen> {
   }
 
   void _showMessage(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    // Using setState to update the connection status instead of showing a SnackBar
+    setState(() {
+      _connectionStatus = message;
+    });
   }
 
   @override
@@ -354,6 +352,33 @@ class _IPSettingsScreenState extends State<IPSettingsScreen> {
                   label: const Text(
                     'Reset to Default',
                     style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Continue Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pushReplacementNamed(AppRoutes.authWelcome);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  icon: const Icon(Icons.arrow_forward, color: Colors.white),
+                  label: const Text(
+                    'Continue to Login',
+                    style: TextStyle(
+                      color: Colors.white, 
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),

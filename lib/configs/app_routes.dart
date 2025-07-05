@@ -14,6 +14,7 @@ import 'package:plantgo/presentation/screens/map/map_screen.dart';
 import 'package:plantgo/presentation/screens/profile/profile_screen.dart';
 import 'package:plantgo/presentation/screens/streak/streak_screen.dart';
 import 'package:plantgo/presentation/screens/leaderboard/leaderboard_screen.dart';
+import 'package:plantgo/presentation/screens/settings/ip_settings_screen.dart';
 import 'package:plantgo/presentation/blocs/scanner/scanner_cubit.dart';
 import 'package:plantgo/core/dependency_injection.dart';
 
@@ -33,6 +34,7 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String streak = '/streak';
   static const String leaderboard = '/leaderboard';
+  static const String ipSettings = '/ip-settings';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -123,6 +125,12 @@ class AppRoutes {
       case leaderboard:
         return MaterialPageRoute(
           builder: (_) => const LeaderboardScreen(),
+          settings: settings,
+        );
+
+      case ipSettings:
+        return MaterialPageRoute(
+          builder: (_) => const IPSettingsScreen(),
           settings: settings,
         );
       

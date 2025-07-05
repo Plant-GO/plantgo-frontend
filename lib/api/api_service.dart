@@ -73,6 +73,12 @@ class ApiService {
     return await _httpManager.get<List<dynamic>>('/plants');
   }
 
+  Future<Response<List<dynamic>>> getUserPlants({
+    required String userId,
+  }) async {
+    return await _httpManager.get<List<dynamic>>('/plants/user/$userId');
+  }
+
   Future<Response<Map<String, dynamic>>> createPlant({
     required PlantModel plant,
   }) async {

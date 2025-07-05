@@ -37,7 +37,9 @@ class _StartGameScreenState extends State<StartGameScreen> {
     context.read<StartGameCubit>().loadStartGameData();
     // Initialize BLoCs
     context.read<ProfileCubit>().loadProfile();
-    // Play background music once user reaches start game screen
+    
+    // Mark user as logged in and start background music
+    AudioService.instance.setUserLoggedIn(true);
     AudioService.instance.playBackgroundMusic();
   }
 
@@ -231,7 +233,7 @@ class _StartGameScreenState extends State<StartGameScreen> {
               // Action Buttons positioned at bottom right
               Positioned(
                 bottom: 80,
-                right: 24,
+                right: 12,
                 child: Column(
                   children: [
                     // Start Game Button
@@ -359,10 +361,10 @@ class _StartGameScreenState extends State<StartGameScreen> {
           // ),
           // Character with animation
           _buildSafeAnimationWrapper(() => const MascotAnimation(
-            width: 180,
+            width: 168,
             height: 300,
             bottom: 30,
-            left: 4,
+            left: -5,
           )),
         ],
       ),

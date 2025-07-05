@@ -181,13 +181,22 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
       listener: (context, state) {
         if (state is ScannerSuccess) {
           _showSuccessAnimation();
+          
+          // Exit scanner automatically when we get a successful prediction
+          Future.delayed(const Duration(milliseconds: 800), () {
+            if (mounted) {
+              // Pop the screen and return the scan result
+              Navigator.pop(context, {
+                'plantName': state.plantName,
+                'confidence': state.confidence,
+              });
+              
+              // Show dialog with the plant information
+              _showPlantInfoDialog(context, state.plantName, state.confidence);
+            }
+          });
         } else if (state is ScannerError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
-          );
+          // Scanner error, UI will update with error state
         }
       },
       builder: (context, state) {
@@ -973,6 +982,101 @@ class _PlantScannerScreenState extends State<PlantScannerScreen>
           ],
         ),
       ),
+    );
+  }
+
+  // Method to show plant information dialog after exiting the scanner
+  void _showPlantInfoDialog(BuildContext context, String plantName, double confidence) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Column(
+            children: [
+              Icon(
+                Icons.eco,
+                color: AppColors.primary,
+                size: 40,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Plant Identified!',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                plantName,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Text(
+                  'Confidence: ${(confidence * 100).toInt()}%',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Would you like to add this plant to your map?',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Not Now'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // You can add additional navigation or actions here
+                // For example, navigate to a map screen to add the plant
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: const Text('Add to Map'),
+            ),
+          ],
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        );
+      },
     );
   }
 

@@ -1,0 +1,2 @@
+/Users/dikshitbhatta/Documents/GitHub/plantgo/android/app/.cxx/Debug/4i6l305b/x86/CMakeFiles/edit_cache.dir
+/Users/dikshitbhatta/Documents/GitHub/plantgo/android/app/.cxx/Debug/4i6l305b/x86/CMakeFiles/rebuild_cache.dir

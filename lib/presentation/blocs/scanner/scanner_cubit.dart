@@ -91,6 +91,15 @@ class ScannerCubit extends Cubit<ScannerState> {
         final plantName = predictionData['prediction'] as String? ?? 'Unknown Plant';
         final confidence = (predictionData['confidence'] ?? 0.0).toDouble();
         
+        // If backend returns a prediction error, emit error state
+        if (plantName == 'Prediction Error' || confidence <= 0.0) {
+          emit(const ScannerError(message: 'The model encountered an error processing the image. Please try again.'));
+          stopScanning();
+          return;
+        }
+        
+        print('Scanner: Plant identified - $plantName (confidence: $confidence)');
+        
         emit(ScannerSuccess(
           plantName: plantName,
           confidence: confidence,

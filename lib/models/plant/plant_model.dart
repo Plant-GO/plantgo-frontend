@@ -27,32 +27,50 @@ class PlantModel with _$PlantModel {
 }
 
 extension PlantModelX on PlantModel {
-  // Convert from legacy Treasure model
+  // Convert from Firestore document to PlantModel
   static PlantModel fromTreasure(Map<String, dynamic> map) {
     return PlantModel(
       id: map['id'] ?? '',
-      name: map['name'] as String,
-      latitude: map['lat'] as double,
-      longitude: map['lng'] as double,
-      imageUrl: map['imageUrl'] as String,
+      name: map['name'] as String? ?? '',
+      latitude: map['lat'] as double? ?? 0.0,
+      longitude: map['lng'] as double? ?? 0.0,
+      imageUrl: map['imageUrl'] as String? ?? '',
       imageChunks: map['imageChunks'] != null 
           ? List<String>.from(map['imageChunks']) 
           : [],
       isChunkedImage: map['isChunkedImage'] as bool? ?? false,
-      createdAt: DateTime.now(),
+      createdAt: map['createdAt'] != null 
+          ? DateTime.parse(map['createdAt']) 
+          : DateTime.now(),
+      updatedAt: map['updatedAt'] != null 
+          ? DateTime.parse(map['updatedAt']) 
+          : null,
+      description: map['description'] as String?,
+      species: map['species'] as String?,
+      family: map['family'] as String?,
+      tags: map['tags'] != null 
+          ? List<String>.from(map['tags']) 
+          : [],
+      userId: map['userId'] as String?,
     );
   }
 
-  // Convert to legacy Treasure format if needed
+  // Convert to Firestore format with all fields
   Map<String, dynamic> toTreasureMap() {
     return {
-      'id': id,
       'name': name,
       'lat': latitude,
       'lng': longitude,
       'imageUrl': imageUrl,
-      if (imageChunks?.isNotEmpty ?? false) 'imageChunks': imageChunks,
-      if (isChunkedImage) 'isChunkedImage': isChunkedImage,
+      'imageChunks': imageChunks ?? [],
+      'isChunkedImage': isChunkedImage,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+      'description': description,
+      'species': species,
+      'family': family,
+      'tags': tags,
+      'userId': userId,
     };
   }
 }

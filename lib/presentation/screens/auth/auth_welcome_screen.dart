@@ -5,9 +5,22 @@ import 'package:plantgo/presentation/blocs/auth/auth_cubit.dart';
 import 'package:plantgo/presentation/blocs/auth/auth_state.dart';
 import 'package:plantgo/configs/app_colors.dart';
 import 'package:plantgo/core/constants/app_images.dart';
+import 'package:plantgo/core/services/audio_service.dart';
 
-class AuthWelcomeScreen extends StatelessWidget {
+class AuthWelcomeScreen extends StatefulWidget {
   const AuthWelcomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<AuthWelcomeScreen> createState() => _AuthWelcomeScreenState();
+}
+
+class _AuthWelcomeScreenState extends State<AuthWelcomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Mark user as not logged in when on auth screens
+    AudioService.instance.setUserLoggedIn(false);
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -29,11 +29,7 @@ class ImagePickerService {
       return imageUrl;
     } catch (e) {
       print("Error in image capture process: $e");
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error capturing image: $e")),
-        );
-      }
+      // Error capturing image, no visual feedback via SnackBar
       return null;
     }
   }
@@ -45,11 +41,7 @@ class ImagePickerService {
         throw Exception("Image file not found");
       }
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Processing image...")),
-        );
-      }
+      // Processing image, no need for visual feedback via SnackBar
       
       // Read the image file
       final bytes = await imageFile.readAsBytes();
@@ -138,11 +130,7 @@ class ImagePickerService {
       return 'data:image/jpeg;base64,$base64Image';
     } catch (e) {
       print("Error processing image: $e");
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to process image: $e")),
-        );
-      }
+      // Silently return null, caller will handle the error state
       return null;
     }
   }
@@ -188,9 +176,12 @@ class ImagePickerService {
                 Navigator.pop(context);
                 onPlantNamed(plantName, imageUrl);
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Please enter a plant name")),
+                // Highlight the text field instead of showing a SnackBar
+                plantNameController.selection = TextSelection(
+                  baseOffset: 0,
+                  extentOffset: plantNameController.text.length
                 );
+                // Visual error feedback handled in the dialog UI
               }
             },
             child: Text("Save", style: TextStyle(color: Colors.greenAccent)),

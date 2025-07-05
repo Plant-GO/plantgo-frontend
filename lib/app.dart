@@ -26,8 +26,8 @@ class _PlantGoAppState extends State<PlantGoApp> {
 
   @override
   void dispose() {
-    // Stop background audio when app is disposed
-    AudioService.instance.stopBackgroundMusic();
+    // Clean up audio service
+    AudioService.instance.dispose();
     super.dispose();
   }
 

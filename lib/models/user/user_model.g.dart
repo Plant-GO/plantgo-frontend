@@ -12,9 +12,7 @@ _$UserModelImpl _$$UserModelImplFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       email: json['email'] as String,
       avatarUrl: json['avatarUrl'] as String?,
-      coursesCompleted: (json['coursesCompleted'] as num?)?.toInt() ?? 0,
-      following: (json['following'] as num?)?.toInt() ?? 0,
-      followers: (json['followers'] as num?)?.toInt() ?? 0,
+      selectedCharacterId: json['selectedCharacterId'] as String?,
       currentStreak: (json['currentStreak'] as num?)?.toInt() ?? 0,
       longestStreak: (json['longestStreak'] as num?)?.toInt() ?? 0,
       joinedDate: json['joinedDate'] == null
@@ -27,6 +25,10 @@ _$UserModelImpl _$$UserModelImplFromJson(Map<String, dynamic> json) =>
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      friends: (json['friends'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$$UserModelImplToJson(_$UserModelImpl instance) =>
@@ -35,12 +37,11 @@ Map<String, dynamic> _$$UserModelImplToJson(_$UserModelImpl instance) =>
       'name': instance.name,
       'email': instance.email,
       'avatarUrl': instance.avatarUrl,
-      'coursesCompleted': instance.coursesCompleted,
-      'following': instance.following,
-      'followers': instance.followers,
+      'selectedCharacterId': instance.selectedCharacterId,
       'currentStreak': instance.currentStreak,
       'longestStreak': instance.longestStreak,
       'joinedDate': instance.joinedDate?.toIso8601String(),
       'lastActive': instance.lastActive?.toIso8601String(),
       'achievements': instance.achievements,
+      'friends': instance.friends,
     };

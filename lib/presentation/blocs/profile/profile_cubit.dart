@@ -19,13 +19,12 @@ class ProfileCubit extends Cubit<ProfileState> {
         id: 'user_1',
         name: 'Dikshit Bhatta',
         email: 'dikshit@example.com',
-        coursesCompleted: 0,
-        following: 0,
-        followers: 0,
+        selectedCharacterId: 'mascot_1',
         currentStreak: 1,
         longestStreak: 5,
         joinedDate: DateTime(2024, 10, 1),
         lastActive: DateTime.now(),
+        friends: ['friend_1', 'friend_2'],
       );
 
       // Mock streak data
@@ -47,6 +46,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     String? name,
     String? email,
     String? avatarUrl,
+    String? selectedCharacterId,
   }) async {
     try {
       final currentState = state;
@@ -59,14 +59,13 @@ class ProfileCubit extends Cubit<ProfileState> {
           name: name ?? currentState.user.name,
           email: email ?? currentState.user.email,
           avatarUrl: avatarUrl ?? currentState.user.avatarUrl,
-          coursesCompleted: currentState.user.coursesCompleted,
-          following: currentState.user.following,
-          followers: currentState.user.followers,
+          selectedCharacterId: selectedCharacterId ?? currentState.user.selectedCharacterId,
           currentStreak: currentState.user.currentStreak,
           longestStreak: currentState.user.longestStreak,
           joinedDate: currentState.user.joinedDate,
           lastActive: DateTime.now(),
           achievements: currentState.user.achievements,
+          friends: currentState.user.friends,
         );
 
         emit(ProfileLoaded(
@@ -98,14 +97,13 @@ class ProfileCubit extends Cubit<ProfileState> {
           name: currentState.user.name,
           email: currentState.user.email,
           avatarUrl: currentState.user.avatarUrl,
-          coursesCompleted: currentState.user.coursesCompleted,
-          following: currentState.user.following,
-          followers: currentState.user.followers,
+          selectedCharacterId: currentState.user.selectedCharacterId,
           currentStreak: currentStreak,
           longestStreak: longestStreak,
           joinedDate: currentState.user.joinedDate,
           lastActive: DateTime.now(),
           achievements: currentState.user.achievements,
+          friends: currentState.user.friends,
         );
 
         final updatedStreakData = Map<String, dynamic>.from(currentState.streakData);
@@ -120,6 +118,40 @@ class ProfileCubit extends Cubit<ProfileState> {
 
         // TODO: Call API to update streak
         // await _apiService.updateStreak();
+      }
+    } catch (e) {
+      emit(ProfileError(message: e.toString()));
+    }
+  }
+
+  Future<void> selectCharacter(String characterId) async {
+    try {
+      final currentState = state;
+      if (currentState is ProfileLoaded) {
+        emit(ProfileLoading());
+
+        // Create updated user with new character selection
+        final updatedUser = UserModel(
+          id: currentState.user.id,
+          name: currentState.user.name,
+          email: currentState.user.email,
+          avatarUrl: currentState.user.avatarUrl,
+          selectedCharacterId: characterId,
+          currentStreak: currentState.user.currentStreak,
+          longestStreak: currentState.user.longestStreak,
+          joinedDate: currentState.user.joinedDate,
+          lastActive: DateTime.now(),
+          achievements: currentState.user.achievements,
+          friends: currentState.user.friends,
+        );
+
+        emit(ProfileLoaded(
+          user: updatedUser,
+          streakData: currentState.streakData,
+        ));
+
+        // TODO: Call API to update character selection
+        // await _apiService.updateUserProfile(user: updatedUser);
       }
     } catch (e) {
       emit(ProfileError(message: e.toString()));

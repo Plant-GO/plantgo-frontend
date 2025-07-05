@@ -24,14 +24,13 @@ mixin _$UserModel {
   String get name => throw _privateConstructorUsedError;
   String get email => throw _privateConstructorUsedError;
   String? get avatarUrl => throw _privateConstructorUsedError;
-  int get coursesCompleted => throw _privateConstructorUsedError;
-  int get following => throw _privateConstructorUsedError;
-  int get followers => throw _privateConstructorUsedError;
+  String? get selectedCharacterId => throw _privateConstructorUsedError;
   int get currentStreak => throw _privateConstructorUsedError;
   int get longestStreak => throw _privateConstructorUsedError;
   DateTime? get joinedDate => throw _privateConstructorUsedError;
   DateTime? get lastActive => throw _privateConstructorUsedError;
   List<String> get achievements => throw _privateConstructorUsedError;
+  List<String> get friends => throw _privateConstructorUsedError;
 
   /// Serializes this UserModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -53,14 +52,13 @@ abstract class $UserModelCopyWith<$Res> {
       String name,
       String email,
       String? avatarUrl,
-      int coursesCompleted,
-      int following,
-      int followers,
+      String? selectedCharacterId,
       int currentStreak,
       int longestStreak,
       DateTime? joinedDate,
       DateTime? lastActive,
-      List<String> achievements});
+      List<String> achievements,
+      List<String> friends});
 }
 
 /// @nodoc
@@ -82,14 +80,13 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
     Object? name = null,
     Object? email = null,
     Object? avatarUrl = freezed,
-    Object? coursesCompleted = null,
-    Object? following = null,
-    Object? followers = null,
+    Object? selectedCharacterId = freezed,
     Object? currentStreak = null,
     Object? longestStreak = null,
     Object? joinedDate = freezed,
     Object? lastActive = freezed,
     Object? achievements = null,
+    Object? friends = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -108,18 +105,10 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
           ? _value.avatarUrl
           : avatarUrl // ignore: cast_nullable_to_non_nullable
               as String?,
-      coursesCompleted: null == coursesCompleted
-          ? _value.coursesCompleted
-          : coursesCompleted // ignore: cast_nullable_to_non_nullable
-              as int,
-      following: null == following
-          ? _value.following
-          : following // ignore: cast_nullable_to_non_nullable
-              as int,
-      followers: null == followers
-          ? _value.followers
-          : followers // ignore: cast_nullable_to_non_nullable
-              as int,
+      selectedCharacterId: freezed == selectedCharacterId
+          ? _value.selectedCharacterId
+          : selectedCharacterId // ignore: cast_nullable_to_non_nullable
+              as String?,
       currentStreak: null == currentStreak
           ? _value.currentStreak
           : currentStreak // ignore: cast_nullable_to_non_nullable
@@ -140,6 +129,10 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
           ? _value.achievements
           : achievements // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      friends: null == friends
+          ? _value.friends
+          : friends // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ) as $Val);
   }
 }
@@ -157,14 +150,13 @@ abstract class _$$UserModelImplCopyWith<$Res>
       String name,
       String email,
       String? avatarUrl,
-      int coursesCompleted,
-      int following,
-      int followers,
+      String? selectedCharacterId,
       int currentStreak,
       int longestStreak,
       DateTime? joinedDate,
       DateTime? lastActive,
-      List<String> achievements});
+      List<String> achievements,
+      List<String> friends});
 }
 
 /// @nodoc
@@ -184,14 +176,13 @@ class __$$UserModelImplCopyWithImpl<$Res>
     Object? name = null,
     Object? email = null,
     Object? avatarUrl = freezed,
-    Object? coursesCompleted = null,
-    Object? following = null,
-    Object? followers = null,
+    Object? selectedCharacterId = freezed,
     Object? currentStreak = null,
     Object? longestStreak = null,
     Object? joinedDate = freezed,
     Object? lastActive = freezed,
     Object? achievements = null,
+    Object? friends = null,
   }) {
     return _then(_$UserModelImpl(
       id: null == id
@@ -210,18 +201,10 @@ class __$$UserModelImplCopyWithImpl<$Res>
           ? _value.avatarUrl
           : avatarUrl // ignore: cast_nullable_to_non_nullable
               as String?,
-      coursesCompleted: null == coursesCompleted
-          ? _value.coursesCompleted
-          : coursesCompleted // ignore: cast_nullable_to_non_nullable
-              as int,
-      following: null == following
-          ? _value.following
-          : following // ignore: cast_nullable_to_non_nullable
-              as int,
-      followers: null == followers
-          ? _value.followers
-          : followers // ignore: cast_nullable_to_non_nullable
-              as int,
+      selectedCharacterId: freezed == selectedCharacterId
+          ? _value.selectedCharacterId
+          : selectedCharacterId // ignore: cast_nullable_to_non_nullable
+              as String?,
       currentStreak: null == currentStreak
           ? _value.currentStreak
           : currentStreak // ignore: cast_nullable_to_non_nullable
@@ -242,6 +225,10 @@ class __$$UserModelImplCopyWithImpl<$Res>
           ? _value._achievements
           : achievements // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      friends: null == friends
+          ? _value._friends
+          : friends // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
@@ -254,15 +241,15 @@ class _$UserModelImpl implements _UserModel {
       required this.name,
       required this.email,
       this.avatarUrl,
-      this.coursesCompleted = 0,
-      this.following = 0,
-      this.followers = 0,
+      this.selectedCharacterId,
       this.currentStreak = 0,
       this.longestStreak = 0,
       this.joinedDate,
       this.lastActive,
-      final List<String> achievements = const []})
-      : _achievements = achievements;
+      final List<String> achievements = const [],
+      final List<String> friends = const []})
+      : _achievements = achievements,
+        _friends = friends;
 
   factory _$UserModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserModelImplFromJson(json);
@@ -276,14 +263,7 @@ class _$UserModelImpl implements _UserModel {
   @override
   final String? avatarUrl;
   @override
-  @JsonKey()
-  final int coursesCompleted;
-  @override
-  @JsonKey()
-  final int following;
-  @override
-  @JsonKey()
-  final int followers;
+  final String? selectedCharacterId;
   @override
   @JsonKey()
   final int currentStreak;
@@ -303,9 +283,18 @@ class _$UserModelImpl implements _UserModel {
     return EqualUnmodifiableListView(_achievements);
   }
 
+  final List<String> _friends;
+  @override
+  @JsonKey()
+  List<String> get friends {
+    if (_friends is EqualUnmodifiableListView) return _friends;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_friends);
+  }
+
   @override
   String toString() {
-    return 'UserModel(id: $id, name: $name, email: $email, avatarUrl: $avatarUrl, coursesCompleted: $coursesCompleted, following: $following, followers: $followers, currentStreak: $currentStreak, longestStreak: $longestStreak, joinedDate: $joinedDate, lastActive: $lastActive, achievements: $achievements)';
+    return 'UserModel(id: $id, name: $name, email: $email, avatarUrl: $avatarUrl, selectedCharacterId: $selectedCharacterId, currentStreak: $currentStreak, longestStreak: $longestStreak, joinedDate: $joinedDate, lastActive: $lastActive, achievements: $achievements, friends: $friends)';
   }
 
   @override
@@ -318,12 +307,8 @@ class _$UserModelImpl implements _UserModel {
             (identical(other.email, email) || other.email == email) &&
             (identical(other.avatarUrl, avatarUrl) ||
                 other.avatarUrl == avatarUrl) &&
-            (identical(other.coursesCompleted, coursesCompleted) ||
-                other.coursesCompleted == coursesCompleted) &&
-            (identical(other.following, following) ||
-                other.following == following) &&
-            (identical(other.followers, followers) ||
-                other.followers == followers) &&
+            (identical(other.selectedCharacterId, selectedCharacterId) ||
+                other.selectedCharacterId == selectedCharacterId) &&
             (identical(other.currentStreak, currentStreak) ||
                 other.currentStreak == currentStreak) &&
             (identical(other.longestStreak, longestStreak) ||
@@ -333,7 +318,8 @@ class _$UserModelImpl implements _UserModel {
             (identical(other.lastActive, lastActive) ||
                 other.lastActive == lastActive) &&
             const DeepCollectionEquality()
-                .equals(other._achievements, _achievements));
+                .equals(other._achievements, _achievements) &&
+            const DeepCollectionEquality().equals(other._friends, _friends));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -344,14 +330,13 @@ class _$UserModelImpl implements _UserModel {
       name,
       email,
       avatarUrl,
-      coursesCompleted,
-      following,
-      followers,
+      selectedCharacterId,
       currentStreak,
       longestStreak,
       joinedDate,
       lastActive,
-      const DeepCollectionEquality().hash(_achievements));
+      const DeepCollectionEquality().hash(_achievements),
+      const DeepCollectionEquality().hash(_friends));
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.
@@ -375,14 +360,13 @@ abstract class _UserModel implements UserModel {
       required final String name,
       required final String email,
       final String? avatarUrl,
-      final int coursesCompleted,
-      final int following,
-      final int followers,
+      final String? selectedCharacterId,
       final int currentStreak,
       final int longestStreak,
       final DateTime? joinedDate,
       final DateTime? lastActive,
-      final List<String> achievements}) = _$UserModelImpl;
+      final List<String> achievements,
+      final List<String> friends}) = _$UserModelImpl;
 
   factory _UserModel.fromJson(Map<String, dynamic> json) =
       _$UserModelImpl.fromJson;
@@ -396,11 +380,7 @@ abstract class _UserModel implements UserModel {
   @override
   String? get avatarUrl;
   @override
-  int get coursesCompleted;
-  @override
-  int get following;
-  @override
-  int get followers;
+  String? get selectedCharacterId;
   @override
   int get currentStreak;
   @override
@@ -411,6 +391,8 @@ abstract class _UserModel implements UserModel {
   DateTime? get lastActive;
   @override
   List<String> get achievements;
+  @override
+  List<String> get friends;
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.
