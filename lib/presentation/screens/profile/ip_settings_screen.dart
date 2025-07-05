@@ -78,12 +78,7 @@ class _IPSettingsScreenState extends State<IPSettingsScreen> {
       
       // Show success message
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Server connection established successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Server connection established successfully, no SnackBar message needed
       }
     } catch (e) {
       setState(() {
@@ -93,12 +88,7 @@ class _IPSettingsScreenState extends State<IPSettingsScreen> {
       
       // Show error message
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to connect to server: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        // Failed to connect to server, will show status in the UI
       }
     } finally {
       setState(() {
@@ -120,14 +110,7 @@ class _IPSettingsScreenState extends State<IPSettingsScreen> {
     final httpManager = getIt<HttpManager>();
     httpManager.updateBaseUrl(AppConstants.baseUrl);
     
-    // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Server settings saved successfully!'),
-        backgroundColor: Colors.green,
-      ),
-    );
-    
+    // Settings saved without SnackBar
     Navigator.pop(context);
   }
 
@@ -138,17 +121,10 @@ class _IPSettingsScreenState extends State<IPSettingsScreen> {
       _connectionStatus = null;
     });
     
-    // Update to localhost
+    // Update to localhost without SnackBar
     AppConstants.updateServerIP('localhost', port: 8080);
     final httpManager = getIt<HttpManager>();
     httpManager.updateBaseUrl(AppConstants.baseUrl);
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Reset to localhost server'),
-        backgroundColor: Colors.blue,
-      ),
-    );
   }
 
   @override

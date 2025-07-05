@@ -57,14 +57,18 @@ class CourseScreen extends StatelessWidget {
               
               return CustomScrollView(
                 slivers: [
-                  SliverAppBar(
-                    backgroundColor: Colors.transparent,
-                    pinned: true,
-                    automaticallyImplyLeading: false,
-                    title: const CourseStatsBar(),
-                  ),
                   SliverList(
                     delegate: SliverChildListDelegate([
+                      // Stats bar positioned below the back button
+                      Padding(
+                        padding: EdgeInsets.only(
+                          top: MediaQuery.of(context).padding.top + 70, // Below back button
+                          left: 16,
+                          right: 16,
+                          bottom: 8,
+                        ),
+                        child: const CourseStatsBar(),
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16.0,

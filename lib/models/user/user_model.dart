@@ -10,14 +10,13 @@ class UserModel with _$UserModel {
     required String name,
     required String email,
     String? avatarUrl,
-    @Default(0) int coursesCompleted,
-    @Default(0) int following,
-    @Default(0) int followers,
+    String? selectedCharacterId,
     @Default(0) int currentStreak,
     @Default(0) int longestStreak,
     DateTime? joinedDate,
     DateTime? lastActive,
     @Default([]) List<String> achievements,
+    @Default([]) List<String> friends,
   }) = _UserModel;
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>

@@ -7,22 +7,34 @@ import 'package:plantgo/models/plant/plant_model.dart';
 import 'package:plantgo/presentation/blocs/map/map_state.dart';
 import 'package:plantgo/core/services/location_service.dart';
 import 'package:plantgo/core/services/image_service.dart';
+import 'package:plantgo/core/services/user_service.dart';
 
 @injectable
 class MapCubit extends Cubit<MapState> {
   final ApiService _apiService;
   final LocationService _locationService;
   final ImageService _imageService;
+  final UserService _userService;
+  String? _currentUserId; // Store current user ID
 
   MapCubit(
     this._apiService,
     this._locationService,
     this._imageService,
+    this._userService,
   ) : super(MapInitial());
 
-  Future<void> initializeMap() async {
+  // Set current user ID for filtering plants
+  void setCurrentUserId(String? userId) {
+    _currentUserId = userId;
+  }
+
+  Future<void> initializeMap({String? userId}) async {
     try {
       emit(MapLoading());
+      
+      // Set user ID if provided, otherwise use UserService
+      _currentUserId = userId ?? _userService.currentUserId;
       
       // Check location permission and get current location
       final hasPermission = await _locationService.checkLocationPermission();
@@ -32,8 +44,8 @@ class MapCubit extends Cubit<MapState> {
         currentLocation = await _locationService.getCurrentLocation();
       }
 
-      // Load plants from Firestore (for now) - later from API
-      final plants = await _loadPlantsFromFirestore();
+      // Load user-specific plants from Firestore
+      final plants = await _loadUserPlantsFromFirestore(_currentUserId);
 
       emit(MapLoaded(
         currentLocation: currentLocation,
@@ -67,6 +79,11 @@ class MapCubit extends Cubit<MapState> {
   Future<void> addPlant({
     required String name,
     required String imagePath,
+    String? userId,
+    String? description,
+    String? species,
+    String? family,
+    List<String>? tags,
   }) async {
     try {
       if (state is! MapLoaded) return;
@@ -77,6 +94,13 @@ class MapCubit extends Cubit<MapState> {
         return;
       }
 
+      // Use provided userId or current user ID from UserService
+      final plantUserId = userId ?? _currentUserId ?? _userService.currentUserId;
+      if (plantUserId == null) {
+        emit(const MapError(message: 'User ID not available. Please log in first.'));
+        return;
+      }
+
       // Process the image
       final imageUrl = await _imageService.processAndUploadImage(imagePath);
       if (imageUrl == null) {
@@ -84,7 +108,7 @@ class MapCubit extends Cubit<MapState> {
         return;
       }
 
-      // Create plant model
+      // Create plant model with all fields
       final plant = PlantModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: name,
@@ -92,12 +116,18 @@ class MapCubit extends Cubit<MapState> {
         longitude: currentState.currentLocation!.longitude,
         imageUrl: imageUrl,
         createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        description: description,
+        species: species,
+        family: family,
+        tags: tags ?? [],
+        userId: plantUserId,
       );
 
-      // Save to Firestore (for now) - later to API
+      // Save to Firestore
       await _savePlantToFirestore(plant);
 
-      // Update state
+      // Update state with new plant
       final updatedPlants = [...currentState.plants, plant];
       emit(MapLoaded(
         currentLocation: currentState.currentLocation,
@@ -138,11 +168,20 @@ class MapCubit extends Cubit<MapState> {
     }
   }
 
-  Future<List<PlantModel>> _loadPlantsFromFirestore() async {
+  Future<List<PlantModel>> _loadUserPlantsFromFirestore(String? userId) async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('treasures')
-          .get();
+      Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+          .collection('treasures');
+      
+      // If userId is provided, filter by userId, otherwise get all plants
+      if (userId != null) {
+        query = query.where('userId', isEqualTo: userId);
+      }
+      
+      // Order by creation date, newest first
+      query = query.orderBy('createdAt', descending: true);
+      
+      final snapshot = await query.get();
 
       return snapshot.docs.map((doc) {
         final data = doc.data();
@@ -150,6 +189,7 @@ class MapCubit extends Cubit<MapState> {
         return PlantModelX.fromTreasure(data);
       }).toList();
     } catch (e) {
+      print('Error loading plants from Firestore: $e');
       return [];
     }
   }
@@ -162,7 +202,7 @@ class MapCubit extends Cubit<MapState> {
 
   void refreshPlants() {
     if (state is MapLoaded) {
-      initializeMap();
+      initializeMap(userId: _currentUserId);
     }
   }
 }

@@ -5,6 +5,7 @@ import 'package:plantgo/configs/app_colors.dart';
 import 'package:plantgo/configs/app_routes.dart';
 import 'package:plantgo/presentation/blocs/auth/auth_cubit.dart';
 import 'package:plantgo/presentation/blocs/auth/auth_state.dart';
+import 'package:plantgo/core/services/audio_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -20,6 +21,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _agreeToTerms = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Mark user as not logged in when on auth screens
+    AudioService.instance.setUserLoggedIn(false);
+  }
 
   @override
   void dispose() {
@@ -78,11 +86,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   // Header with plant icon
                   Row(
                     children: [
@@ -332,7 +341,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         icon: Icons.facebook,
                         color: const Color(0xFF1877F2),
                         onPressed: () {
-                          // DEV: Directly navigate to main screen without backend
+                          // DEV: Directly navigate to start_game screen without backend
                           Navigator.pushNamedAndRemoveUntil(context, AppRoutes.startGame, (route) => false);
                         },
                       ),
@@ -351,7 +360,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             final token = Uri.parse(result).queryParameters['token'];
                             if (token != null) {
                               // TODO: Save token, fetch user profile, etc.
-                              // For now, just navigate to main
+                              // For now, just navigate to start_game
                               Navigator.pushNamedAndRemoveUntil(context, AppRoutes.startGame, (route) => false);
                             }
                           } catch (e) {
@@ -373,7 +382,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ],
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 24),
                   
                   // Already have account
                   Row(
@@ -408,6 +417,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

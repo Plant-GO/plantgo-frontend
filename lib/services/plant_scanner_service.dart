@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:async';
 import 'package:injectable/injectable.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/io.dart';
@@ -12,8 +11,6 @@ class PlantScannerService {
   
   WebSocketChannel? _channel;
   bool _isConnected = false;
-  StreamController<Map<String, dynamic>>? _responseController;
-  Timer? _pingTimer;
   
   PlantScannerService(this._apiService);
   
@@ -26,56 +23,27 @@ class PlantScannerService {
       final wsUrl = '${AppConstants.webSocketUrl}${AppConstants.scanVideoEndpoint}';
       print('PlantScannerService: Attempting to connect to WebSocket: $wsUrl');
       
+      // Add timeout to prevent hanging
       _channel = IOWebSocketChannel.connect(
         wsUrl,
-        connectTimeout: const Duration(seconds: 10),
-        pingInterval: const Duration(seconds: 20),
-      );
-      
-      // Initialize response stream controller
-      _responseController = StreamController<Map<String, dynamic>>.broadcast();
-      
-      // Listen to WebSocket messages
-      _channel!.stream.listen(
-        (message) {
-          try {
-            final data = jsonDecode(message) as Map<String, dynamic>;
-            print('PlantScannerService: Received WebSocket message: $data');
-            _responseController?.add(data);
-          } catch (e) {
-            print('PlantScannerService: Error parsing WebSocket message: $e');
-          }
-        },
-        onError: (error) {
-          print('PlantScannerService: WebSocket error: $error');
-          _isConnected = false;
-        },
-        onDone: () {
-          print('PlantScannerService: WebSocket connection closed');
-          _isConnected = false;
-        },
+        connectTimeout: const Duration(seconds: 5),
       );
       
       // Wait for connection to establish
-      await Future.delayed(const Duration(milliseconds: 1000));
+      await Future.delayed(const Duration(milliseconds: 500));
       
-      // Send initial ping to test connection
+      // Test connection by sending a ping
       try {
-        final pingMessage = jsonEncode({
+        _channel!.sink.add(jsonEncode({
           'type': 'ping',
           'data': {'timestamp': DateTime.now().millisecondsSinceEpoch}
-        });
-        _channel!.sink.add(pingMessage);
+        }));
         
         _isConnected = true;
         print('PlantScannerService: WebSocket connected successfully to Go backend');
-        
-        // Start periodic ping to keep connection alive
-        _startPingTimer();
-        
         return _channel;
       } catch (e) {
-        print('PlantScannerService: Failed to send initial ping: $e');
+        print('PlantScannerService: Failed to send ping: $e');
         _isConnected = false;
         _channel = null;
         return null;
@@ -90,39 +58,31 @@ class PlantScannerService {
     }
   }
   
-  /// Start periodic ping timer
-  void _startPingTimer() {
-    _pingTimer?.cancel();
-    _pingTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      if (_isConnected && _channel != null) {
-        sendPing();
-      } else {
-        timer.cancel();
-      }
-    });
-  }
-  
   /// Send frame to Go backend for real-time analysis
+  /// Expected format: {"type": "frame", "data": {"image": "base64...", "timestamp": 123}}
   void sendFrame(String base64Image) {
     if (!_isConnected || _channel == null) {
       print('PlantScannerService: Cannot send frame - WebSocket not connected');
-      return;
+      throw Exception('WebSocket not connected');
     }
     
     try {
+      print('PlantScannerService: Sending frame to WebSocket (${base64Image.length} bytes base64)');
+      
       final message = jsonEncode({
         'type': 'frame',
         'data': {
           'image': base64Image,
           'timestamp': DateTime.now().millisecondsSinceEpoch,
-        }
+        },
       });
       
       _channel!.sink.add(message);
-      print('PlantScannerService: Frame sent successfully (${base64Image.length} chars)');
+      print('PlantScannerService: Frame sent successfully');
     } catch (e) {
       print('PlantScannerService: Failed to send frame: $e');
       _isConnected = false;
+      throw e;
     }
   }
   
@@ -130,43 +90,34 @@ class PlantScannerService {
   void sendPing() {
     if (!_isConnected || _channel == null) return;
     
-    try {
-      final message = jsonEncode({
-        'type': 'ping',
-        'data': {'timestamp': DateTime.now().millisecondsSinceEpoch}
-      });
-      
-      _channel!.sink.add(message);
-      print('PlantScannerService: Ping sent');
-    } catch (e) {
-      print('PlantScannerService: Failed to send ping: $e');
-      _isConnected = false;
-    }
+    final message = jsonEncode({
+      'type': 'ping',
+      'data': {
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      },
+    });
+    
+    _channel!.sink.add(message);
   }
   
   /// Scan single image using Go backend's /scan/image endpoint
   Future<Map<String, dynamic>?> scanSingleImage(String imagePath) async {
     try {
-      print('PlantScannerService: Scanning single image via Go backend API');
-      final response = await _apiService.scanPlantImage(imagePath: imagePath);
+      print('PlantScannerService: Attempting to scan image at: $imagePath');
       
-      if (response.statusCode == 200 && response.data != null) {
-        print('PlantScannerService: Single image scan successful: ${response.data}');
-        return response.data;
-      } else {
-        print('PlantScannerService: Single image scan failed with status: ${response.statusCode}');
-        throw Exception('Backend returned status: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('PlantScannerService: Failed to scan single image: $e');
-      
-      // Fallback to mock data only if in development mode
+      // In development mode, return mock data when backend is not available
       if (AppConstants.isDevelopmentMode) {
+        print('PlantScannerService: Development mode is enabled, using mock data');
+        // Simulate network delay
+        await Future.delayed(const Duration(seconds: 2));
+        
+        // Return mock plant identification result
         final mockPlants = [
-          {'prediction': 'Marigold', 'confidence': 0.75},
-          {'prediction': 'Scarlet Sage', 'confidence': 0.68},
-          {'prediction': 'Rose', 'confidence': 0.85},
-          {'prediction': 'Sunflower', 'confidence': 0.92},
+          {'prediction': 'Rose', 'confidence': 0.95},
+          {'prediction': 'Sunflower', 'confidence': 0.88},
+          {'prediction': 'Tulip', 'confidence': 0.92},
+          {'prediction': 'Daisy', 'confidence': 0.85},
+          {'prediction': 'Lily', 'confidence': 0.90},
         ];
         
         final randomPlant = mockPlants[DateTime.now().millisecond % mockPlants.length];
@@ -174,32 +125,46 @@ class PlantScannerService {
         return randomPlant;
       }
       
+      print('PlantScannerService: Calling backend API for real scanning');
+      final response = await _apiService.scanPlantImage(imagePath: imagePath);
+      print('PlantScannerService: Backend API response: ${response.data}');
+      return response.data;
+    } catch (e) {
+      print('PlantScannerService: Failed to scan single image: $e');
+      
+      // Fallback to mock data if real API fails
+      if (AppConstants.isDevelopmentMode) {
+        print('PlantScannerService: API failed, using development mode fallback');
+        return {'prediction': 'Unknown Plant', 'confidence': 0.5};
+      }
+      
       throw Exception('Failed to scan image: $e');
     }
   }
   
   /// Listen to WebSocket messages from Go backend
+  /// Expected response format: {"type": "prediction", "data": {"prediction": "Plant Name", "confidence": 0.85}}
   Stream<Map<String, dynamic>>? get messageStream {
-    return _responseController?.stream;
+    if (_channel == null) return null;
+    
+    return _channel!.stream.map((message) {
+      try {
+        return jsonDecode(message) as Map<String, dynamic>;
+      } catch (e) {
+        print('Error parsing WebSocket message: $e');
+        return <String, dynamic>{};
+      }
+    });
   }
   
   /// Close WebSocket connection
   void closeConnection() {
-    print('PlantScannerService: Closing WebSocket connection');
-    
-    _pingTimer?.cancel();
-    _pingTimer = null;
-    
     if (_channel != null) {
       _channel!.sink.close();
       _channel = null;
       _isConnected = false;
+      print('WebSocket connection closed');
     }
-    
-    _responseController?.close();
-    _responseController = null;
-    
-    print('PlantScannerService: WebSocket connection closed');
   }
   
   /// Check if WebSocket is connected
@@ -210,21 +175,18 @@ class PlantScannerService {
     if (_isConnected && _channel != null) {
       return 'Connected to Go backend';
     } else {
-      return 'Disconnected - Using fallback mode';
+      return 'Disconnected';
     }
   }
   
   /// Test connection to Go backend
   Future<bool> testConnection() async {
     try {
-      print('PlantScannerService: Testing connection to Go backend');
-      // Use health check endpoint instead of scan endpoint for testing
-      final response = await _apiService.checkHealth();
-      final isConnected = response.statusCode == 200;
-      print('PlantScannerService: Connection test result: $isConnected');
-      return isConnected;
+      // Test HTTP endpoint first
+      await _apiService.scanPlantImage(imagePath: 'test_connection');
+      return true;
     } catch (e) {
-      print('PlantScannerService: Connection test failed: $e');
+      print('Connection test failed: $e');
       return false;
     }
   }

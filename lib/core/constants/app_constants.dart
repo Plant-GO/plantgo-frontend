@@ -1,7 +1,7 @@
 class AppConstants {
   // API Constants - Go Backend
-  static String _baseUrl = 'http://192.168.201.132:8080'; // Default Go backend server
-  static String _webSocketUrl = 'ws://192.168.201.132:8080'; // Default WebSocket base URL
+  static String _baseUrl = 'http://localhost:8080'; // Default Go backend server
+  static String _webSocketUrl = 'ws://localhost:8080'; // Default WebSocket base URL
   static const String apiVersion = 'v1';
   
   // Getters for dynamic URLs

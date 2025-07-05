@@ -4,6 +4,7 @@ import 'package:plantgo/configs/app_colors.dart';
 import 'package:plantgo/configs/app_routes.dart';
 import 'package:plantgo/presentation/blocs/auth/auth_cubit.dart';
 import 'package:plantgo/presentation/blocs/auth/auth_state.dart';
+import 'package:plantgo/core/services/audio_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -21,6 +22,8 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+    // Mark user as not logged in initially
+    AudioService.instance.setUserLoggedIn(false);
     _initializeAnimation();
     _checkAuthAndNavigate();
   }
@@ -57,7 +60,7 @@ class _SplashScreenState extends State<SplashScreen>
     // Navigate after animation completes
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed(AppRoutes.authWelcome);
+        Navigator.of(context).pushReplacementNamed(AppRoutes.ipSettings);
       }
     });
   }
