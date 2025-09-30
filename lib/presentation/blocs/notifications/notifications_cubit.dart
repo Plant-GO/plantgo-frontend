@@ -5,7 +5,8 @@ import 'package:plantgo/presentation/blocs/notifications/notifications_state.dar
 
 @injectable
 class NotificationsCubit extends Cubit<NotificationsState> {
-  final ApiService _apiService;
+  // ignore: unused_field
+  final ApiService _apiService; // TODO: Will be used for backend integration
 
   NotificationsCubit(this._apiService) : super(NotificationsInitial());
 

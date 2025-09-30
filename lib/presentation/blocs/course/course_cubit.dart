@@ -6,7 +6,8 @@ import 'package:plantgo/presentation/blocs/course/course_state.dart';
 
 @injectable
 class CourseCubit extends Cubit<CourseState> {
-  final ApiService _apiService;
+  // ignore: unused_field
+  final ApiService _apiService; // TODO: Will be used for backend integration
 
   CourseCubit(this._apiService) : super(CourseInitial());
 

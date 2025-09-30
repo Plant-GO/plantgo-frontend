@@ -1,7 +1,6 @@
 // lib/methods/pick_image_upload.dart
 import 'dart:io';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:math' show max;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';

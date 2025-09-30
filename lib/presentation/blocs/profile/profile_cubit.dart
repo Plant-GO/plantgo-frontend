@@ -6,7 +6,8 @@ import 'package:plantgo/presentation/blocs/profile/profile_state.dart';
 
 @injectable
 class ProfileCubit extends Cubit<ProfileState> {
-  final ApiService _apiService;
+  // ignore: unused_field
+  final ApiService _apiService; // TODO: Will be used for backend integration
 
   ProfileCubit(this._apiService) : super(ProfileInitial());
 
@@ -128,7 +129,6 @@ class ProfileCubit extends Cubit<ProfileState> {
 
   Map<String, dynamic> _generateMockStreakCalendar() {
     final now = DateTime.now();
-    final currentMonth = DateTime(now.year, now.month);
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
     
     final calendar = <int, bool>{};

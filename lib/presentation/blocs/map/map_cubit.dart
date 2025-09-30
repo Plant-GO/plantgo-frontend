@@ -10,7 +10,8 @@ import 'package:plantgo/core/services/image_service.dart';
 
 @injectable
 class MapCubit extends Cubit<MapState> {
-  final ApiService _apiService;
+  // ignore: unused_field
+  final ApiService _apiService; // TODO: Will be used for backend integration
   final LocationService _locationService;
   final ImageService _imageService;
 

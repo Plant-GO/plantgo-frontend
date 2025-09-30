@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:plantgo/configs/app_colors.dart';
 import 'package:plantgo/core/constants/app_images.dart';
-import 'dart:math' as math;
 
 class GameTitleAnimation extends StatefulWidget {
   final String title;
@@ -34,11 +32,6 @@ class _GameTitleAnimationState extends State<GameTitleAnimation>
   late AnimationController _glowController;
   late AnimationController _pulseController;
   late AnimationController _swayController;
-  late Animation<double> _shimmerAnimation;
-  late Animation<double> _bounceAnimation;
-  late Animation<double> _glowAnimation;
-  late Animation<double> _pulseAnimation;
-  late Animation<double> _swayAnimation;
 
   @override
   void initState() {
@@ -53,27 +46,11 @@ class _GameTitleAnimationState extends State<GameTitleAnimation>
       vsync: this,
     );
 
-    _shimmerAnimation = Tween<double>(
-      begin: -2.0,
-      end: 2.0,
-    ).animate(CurvedAnimation(
-      parent: _shimmerController,
-      curve: Curves.easeInOut,
-    ));
-
     // Bounce animation - Candy Crush logo bounce
     _bounceController = AnimationController(
       duration: const Duration(seconds: 4),
       vsync: this,
     );
-
-    _bounceAnimation = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(
-      parent: _bounceController,
-      curve: Curves.elasticInOut,
-    ));
 
     // Glow animation - pulsing glow effect
     _glowController = AnimationController(
@@ -81,41 +58,17 @@ class _GameTitleAnimationState extends State<GameTitleAnimation>
       vsync: this,
     );
 
-    _glowAnimation = Tween<double>(
-      begin: 0.5,
-      end: 1.2,
-    ).animate(CurvedAnimation(
-      parent: _glowController,
-      curve: Curves.easeInOut,
-    ));
-
     // Pulse scale animation - makes logo grow and shrink
     _pulseController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
     );
 
-    _pulseAnimation = Tween<double>(
-      begin: 0.95,
-      end: 1.05,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
-
     // Sway animation - gentle left-right movement
     _swayController = AnimationController(
       duration: const Duration(seconds: 5),
       vsync: this,
     );
-
-    _swayAnimation = Tween<double>(
-      begin: -5,
-      end: 5,
-    ).animate(CurvedAnimation(
-      parent: _swayController,
-      curve: Curves.easeInOut,
-    ));
 
     // Start animations with staggered timing
     _bounceController.repeat(reverse: true);
