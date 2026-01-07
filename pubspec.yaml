@@ -1,0 +1,55 @@
+name: plantgo
+description: "A plant identification and map exploration app"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI & Icons
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  flutter_svg: ^2.0.10+1
+  cached_network_image: ^3.3.1
+
+  # State Management
+  provider: ^6.1.2
+
+  # Maps (OSM - No API key required!)
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
+
+  # Location
+  geolocator: ^12.0.0
+  permission_handler: ^11.3.0
+
+  # Firebase - UNCOMMENT when Firebase project is configured
+  # firebase_core: ^2.27.0
+  # cloud_firestore: ^4.15.8
+  # firebase_auth: ^4.17.8
+
+  # Camera & Image
+  image_picker: ^1.0.7
+  
+  # Networking
+  http: ^1.2.0
+  
+  # Environment Config
+  flutter_dotenv: ^5.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - .env
+    - assets/images/
+    - assets/icons/
