@@ -121,20 +121,10 @@ class CollectedPlant {
 class SampleUser {
   static UserProgress defaultProgress = UserProgress(
     userId: 'demo_user',
-    coins: 1240,
-    leaves: 45,
-    completedLevelIds: ['1', '2'],
-    collection: [
-      CollectedPlant(
-        plantId: 'monstera_deliciosa',
-        name: 'Monstera Deliciosa',
-        rarity: PlantRarity.legendary,
-        discoveredAt: DateTime.now().subtract(const Duration(days: 5)),
-        latitude: 45.5122,
-        longitude: -122.6587,
-        isFirstFind: true,
-      ),
-    ],
-    totalXp: 350,
+    coins: 0,
+    leaves: 0,
+    completedLevelIds: [],
+    collection: [],
+    totalXp: 0,
   );
 }

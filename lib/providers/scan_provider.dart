@@ -144,6 +144,7 @@ class ScanProvider extends ChangeNotifier {
       _verificationResult = await _plantIdService.verifyPlant(
         imageBase64: base64Image,
         expectedPlantId: expectedPlantId,
+        expectedAliases: [expectedPlantId], // Use plantId as alias for now
       );
 
       _state = _verificationResult!.isMatch

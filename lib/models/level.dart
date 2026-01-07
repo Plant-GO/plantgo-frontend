@@ -95,72 +95,108 @@ class Level {
       status == LevelStatus.active || status == LevelStatus.completed;
 }
 
-/// Sample levels for demo (matching the mockup design)
+/// Sample levels for demo with 5 common plants
+/// Plant names match common_names from Plant.ID API for verification
 class SampleLevels {
   static const List<Level> levels = [
     Level(
       id: 1,
       name: 'Level 1',
-      subtitle: 'Getting Started',
-      riddle: 'Look for the green leaves by the entrance.',
-      plantToFindId: 'monstera_deliciosa',
-      status: LevelStatus.completed,
-      stars: 3,
-      targetLatitude: 45.5122,
-      targetLongitude: -122.6587,
+      subtitle: 'The Queen of Flowers',
+      riddle: '🌹 I am the queen of gardens, beloved by all,\n'
+          'With petals soft as velvet, standing proud and tall.\n'
+          'Red, pink, or white - my colors shine so bright,\n'
+          'I\'m gifted on Valentine\'s, a romantic delight.\n'
+          'What am I?',
+      plantToFindId: 'rose',
+      status: LevelStatus.active,
+      stars: 0,
       clueStrength: 'High',
       distanceHint: 20,
     ),
     Level(
       id: 2,
       name: 'Level 2',
-      subtitle: 'First Steps',
-      riddle: 'Near the water fountain, a tropical friend awaits.',
-      plantToFindId: 'variegated_monstera',
-      status: LevelStatus.completed,
-      stars: 3,
-      targetLatitude: 45.5155,
-      targetLongitude: -122.6620,
+      subtitle: 'Festival Gold',
+      riddle: '🌼 In festivals I shine like the morning sun,\n'
+          'Orange and yellow petals, woven into garlands one by one.\n'
+          'In temples and weddings, I\'m always found,\n'
+          'My fragrance fills the air all around.\n'
+          'What flower am I?',
+      plantToFindId: 'marigold',
+      status: LevelStatus.locked,
+      stars: 0,
       clueStrength: 'High',
       distanceHint: 30,
     ),
     Level(
       id: 3,
       name: 'Level 3',
-      subtitle: 'Level up yeah fella',
-      riddle: 'By the old oak tree, something special grows.',
-      plantToFindId: 'pine_tree',
-      status: LevelStatus.active,
+      subtitle: 'Mountain Beauty',
+      riddle: '🌺 High in the mountains, I bloom with grace,\n'
+          'Nepal\'s national flower, a beloved embrace.\n'
+          'Pink and red clusters on woody stems grow,\n'
+          'In spring I put on nature\'s greatest show.\n'
+          'What am I?',
+      plantToFindId: 'rhododendron',
+      status: LevelStatus.locked,
       stars: 0,
-      targetLatitude: 45.5180,
-      targetLongitude: -122.6700,
       clueStrength: 'Medium',
       distanceHint: 45,
     ),
     Level(
       id: 4,
       name: 'Level 4',
-      subtitle: 'Hidden Treasures',
-      riddle: 'Where shadows meet light, look for spotted leaves.',
-      plantToFindId: 'monstera_deliciosa',
+      subtitle: 'Tropical Treasure',
+      riddle: '🍐 I\'m a tropical fruit with seeds inside,\n'
+          'Green skin turning yellow is my ripening guide.\n'
+          'Rich in vitamin C, I help you stay strong,\n'
+          'My fragrance is sweet, you can\'t go wrong.\n'
+          'What fruit tree am I?',
+      plantToFindId: 'guava',
+      status: LevelStatus.locked,
+      stars: 0,
+      clueStrength: 'Medium',
+      distanceHint: 50,
+    ),
+    Level(
+      id: 5,
+      name: 'Level 5',
+      subtitle: 'Golden Grains',
+      riddle: '🌽 I stand tall in fields, in rows so neat,\n'
+          'My golden kernels make a tasty treat.\n'
+          'Popcorn and tortillas from me are made,\n'
+          'A staple crop, in many lands displayed.\n'
+          'What am I?',
+      plantToFindId: 'maize',
       status: LevelStatus.locked,
       stars: 0,
       clueStrength: 'Low',
       distanceHint: 60,
     ),
-    Level(
-      id: 5,
-      name: 'Level 5',
-      subtitle: 'The Silent Watcher',
-      riddle:
-          '"I stand tall with needles green, in winter\'s snow I\'m easily seen. Look for me near the old fountain."',
-      plantToFindId: 'pine_tree',
-      status: LevelStatus.locked,
-      stars: 0,
-      targetLatitude: 45.5200,
-      targetLongitude: -122.6750,
-      clueStrength: 'High',
-      distanceHint: 50,
-    ),
   ];
+
+  /// Alternative common names for matching with Plant.ID API
+  static const Map<String, List<String>> plantAliases = {
+    'rose': ['rose', 'rosa', 'garden rose', 'wild rose', 'climbing rose'],
+    'marigold': ['marigold', 'tagetes', 'african marigold', 'french marigold', 'pot marigold'],
+    'rhododendron': ['rhododendron', 'azalea', 'lali gurans', 'alpine rose'],
+    'guava': ['guava', 'psidium guajava', 'common guava', 'apple guava', 'lemon guava'],
+    'maize': ['maize', 'corn', 'zea mays', 'sweet corn', 'indian corn'],
+  };
+
+  /// Check if identified plant matches expected plant
+  static bool isPlantMatch(String expectedPlantId, List<String> identifiedNames) {
+    final aliases = plantAliases[expectedPlantId.toLowerCase()] ?? [expectedPlantId.toLowerCase()];
+    
+    for (final identifiedName in identifiedNames) {
+      final lowerName = identifiedName.toLowerCase();
+      for (final alias in aliases) {
+        if (lowerName.contains(alias) || alias.contains(lowerName)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 }

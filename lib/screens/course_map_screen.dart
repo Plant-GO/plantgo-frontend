@@ -75,14 +75,25 @@ class CourseMapScreen extends StatelessWidget {
   }
 
   Widget _buildLevelPath(BuildContext context) {
-    final courseProvider = context.watch<CourseProvider>();
-    final levels = courseProvider.levels;
+    return Consumer<CourseProvider>(
+      builder: (context, courseProvider, child) {
+        debugPrint('🔄 CourseMapScreen: Building with ${courseProvider.levels.length} levels');
+        
+        if (courseProvider.isLoading) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+        
+        final levels = courseProvider.levels;
+        final completedCount = levels.where((l) => l.status == LevelStatus.completed).length;
+        debugPrint('✅ CourseMapScreen: $completedCount completed levels');
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
 
-        return SingleChildScrollView(
+            return SingleChildScrollView(
           reverse: true, // Start from bottom (Level 1)
           padding: const EdgeInsets.symmetric(vertical: 40),
           child: SizedBox(
@@ -144,6 +155,8 @@ class CourseMapScreen extends StatelessWidget {
             ),
           ),
         );
+      },
+    );
       },
     );
   }

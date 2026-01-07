@@ -1,18 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme/app_colors.dart';
 import '../models/plant.dart';
 import '../models/user_progress.dart';
 import '../providers/user_provider.dart';
+import '../services/treasure_service.dart';
+import '../services/user_service.dart';
+import 'map_exploration_screen.dart';
 
 /// Collections Screen - Displays all plants the user has collected
-class CollectionsScreen extends StatelessWidget {
+class CollectionsScreen extends StatefulWidget {
   const CollectionsScreen({super.key});
 
   @override
+  State<CollectionsScreen> createState() => _CollectionsScreenState();
+}
+
+class _CollectionsScreenState extends State<CollectionsScreen> {
+  final TreasureService _treasureService = TreasureService();
+  String? _userId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userId = prefs.getString('deviceId');
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final userProvider = context.watch<UserProvider>();
-    final collection = userProvider.collection;
+    if (_userId == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -22,58 +51,65 @@ class CollectionsScreen extends StatelessWidget {
             // Header
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'My Collection',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${collection.length} plants discovered',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Rarity filter chips
-                  _buildRarityFilters(context, userProvider),
-                ],
+              child: StreamBuilder<List<Treasure>>(
+                stream: _treasureService.getUserTreasuresStream(_userId!),
+                builder: (context, snapshot) {
+                  final treasureCount = snapshot.hasData ? snapshot.data!.length : 0;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'My Collection',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '$treasureCount plants discovered',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
 
             // Collection list
             Expanded(
-              child: collection.isEmpty
-                  ? _buildEmptyState()
-                  : _buildCollectionGrid(collection),
+              child: StreamBuilder<List<Treasure>>(
+                stream: _treasureService.getUserTreasuresStream(_userId!),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text('Error: ${snapshot.error}'),
+                    );
+                  }
+                  
+                  final treasures = snapshot.data ?? [];
+                  
+                  if (treasures.isEmpty) {
+                    return _buildEmptyState();
+                  }
+                  
+                  return _buildCollectionGrid(treasures);
+                },
+              ),
             ),
 
             // Space for FAB
             const SizedBox(height: 80),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildRarityFilters(BuildContext context, UserProvider userProvider) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: PlantRarity.values.map((rarity) {
-          final count = userProvider.getRarityCount(rarity);
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: _RarityChip(rarity: rarity, count: count),
-          );
-        }).toList(),
       ),
     );
   }
@@ -111,7 +147,7 @@ class CollectionsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCollectionGrid(List<CollectedPlant> collection) {
+  Widget _buildCollectionGrid(List<Treasure> treasures) {
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -120,74 +156,38 @@ class CollectionsScreen extends StatelessWidget {
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
-      itemCount: collection.length,
+      itemCount: treasures.length,
       itemBuilder: (context, index) {
-        return _CollectionCard(plant: collection[index]);
+        return _TreasureCard(treasure: treasures[index]);
       },
     );
   }
 }
 
-/// Rarity filter chip
-class _RarityChip extends StatelessWidget {
-  final PlantRarity rarity;
-  final int count;
+/// Treasure card widget
+class _TreasureCard extends StatelessWidget {
+  final Treasure treasure;
 
-  const _RarityChip({required this.rarity, required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: _getRarityColor(rarity).withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: _getRarityColor(rarity).withValues(alpha: 0.3),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: _getRarityColor(rarity),
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            '${_getRarityName(rarity)} ($count)',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: _getRarityColor(rarity),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Collection card for displaying a collected plant
-class _CollectionCard extends StatelessWidget {
-  final CollectedPlant plant;
-
-  const _CollectionCard({required this.plant});
+  const _TreasureCard({required this.treasure});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PlantDetailPage(treasure: treasure),
+          ),
+        );
+      },
+      child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -195,175 +195,70 @@ class _CollectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Plant image placeholder with rarity gradient
+          // Image
           Expanded(
-            flex: 3,
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    _getRarityColor(plant.rarity).withValues(alpha: 0.3),
-                    _getRarityColor(plant.rarity).withValues(alpha: 0.1),
-                  ],
-                ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-              ),
-              child: Stack(
-                children: [
-                  Center(
-                    child: Icon(
-                      Icons.eco_rounded,
-                      size: 48,
-                      color: _getRarityColor(plant.rarity),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: treasure.imageBase64.isNotEmpty
+                  ? Image.memory(
+                      _decodeBase64(treasure.imageBase64),
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: AppColors.primaryLight.withValues(alpha: 0.2),
+                          child: const Icon(Icons.eco, size: 48, color: AppColors.primary),
+                        );
+                      },
+                    )
+                  : Container(
+                      color: AppColors.primaryLight.withValues(alpha: 0.2),
+                      child: const Icon(Icons.eco, size: 48, color: AppColors.primary),
                     ),
-                  ),
-                  // Rarity badge
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getRarityColor(plant.rarity),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _getRarityName(plant.rarity),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // First find badge
-                  if (plant.isFirstFind)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.amber,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.star_rounded,
-                              size: 12,
-                              color: Colors.white,
-                            ),
-                            SizedBox(width: 2),
-                            Text(
-                              'First!',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
             ),
           ),
-          // Plant info
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    plant.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          // Info
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  treasure.commonName.isNotEmpty ? treasure.commonName : treasure.plantName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatDate(plant.discoveredAt),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatDate(treasure.discoveredAt),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-    );
+    ));
+  }
+
+  dynamic _decodeBase64(String base64String) {
+    // Remove data:image prefix if present
+    String cleanBase64 = base64String;
+    if (base64String.contains(',')) {
+      cleanBase64 = base64String.split(',').last;
+    }
+    return Uri.parse('data:image/jpeg;base64,$cleanBase64').data!.contentAsBytes();
   }
 
   String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'Today';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
-  }
-}
-
-/// Helper function to get rarity color
-Color _getRarityColor(PlantRarity rarity) {
-  switch (rarity) {
-    case PlantRarity.common:
-      return const Color(0xFF78909C);
-    case PlantRarity.uncommon:
-      return const Color(0xFF4CAF50);
-    case PlantRarity.rare:
-      return const Color(0xFF2196F3);
-    case PlantRarity.epic:
-      return const Color(0xFF9C27B0);
-    case PlantRarity.legendary:
-      return const Color(0xFFFF9800);
-  }
-}
-
-/// Helper function to get rarity name
-String _getRarityName(PlantRarity rarity) {
-  switch (rarity) {
-    case PlantRarity.common:
-      return 'Common';
-    case PlantRarity.uncommon:
-      return 'Uncommon';
-    case PlantRarity.rare:
-      return 'Rare';
-    case PlantRarity.epic:
-      return 'Epic';
-    case PlantRarity.legendary:
-      return 'Legendary';
+    return '${date.day}/${date.month}/${date.year}';
   }
 }

@@ -27,19 +27,26 @@ dependencies:
   geolocator: ^12.0.0
   permission_handler: ^11.3.0
 
-  # Firebase - UNCOMMENT when Firebase project is configured
-  # firebase_core: ^2.27.0
-  # cloud_firestore: ^4.15.8
-  # firebase_auth: ^4.17.8
+  # Firebase
+  firebase_core: ^2.27.0
+  cloud_firestore: ^4.15.8
+  firebase_storage: ^11.6.0
 
   # Camera & Image
   image_picker: ^1.0.7
+  camera: ^0.10.5+5
+  flutter_image_compress: ^2.1.0
   
   # Networking
   http: ^1.2.0
   
   # Environment Config
   flutter_dotenv: ^5.1.0
+  
+  # Device & Storage
+  device_info_plus: ^10.1.0
+  shared_preferences: ^2.2.2
+  uuid: ^4.3.3
 
 dev_dependencies:
   flutter_test:

@@ -11,7 +11,7 @@ import 'package:plantgo/main.dart';
 void main() {
   testWidgets('PlantGo app smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const PlantGoApp());
+    await tester.pumpWidget(const PlantGoApp(hasCompletedOnboarding: true));
 
     // Verify that the app launches
     expect(find.text('Course'), findsOneWidget);

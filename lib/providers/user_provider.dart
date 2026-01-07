@@ -9,17 +9,42 @@ class UserProvider extends ChangeNotifier {
 
   UserProgress _progress = SampleUser.defaultProgress;
   bool _isLoading = false;
+  String _userName = '';
+  String _deviceId = '';
 
   UserProvider({FirebaseSyncService? firebaseService})
     : _firebaseService = firebaseService;
 
   UserProgress get progress => _progress;
   bool get isLoading => _isLoading;
+  String get userName => _userName;
+  String get deviceId => _deviceId;
 
   int get coins => _progress.coins;
   int get leaves => _progress.leaves;
   int get totalXp => _progress.totalXp;
   List<CollectedPlant> get collection => _progress.collection;
+
+  /// Set user name
+  void setUserName(String name) {
+    _userName = name;
+    notifyListeners();
+  }
+
+  /// Set device ID
+  void setDeviceId(String id) {
+    _deviceId = id;
+    notifyListeners();
+  }
+
+  /// Set coins and leaves from Firebase
+  void setCoinsAndLeaves(int coins, int leaves) {
+    _progress = _progress.copyWith(
+      coins: coins,
+      leaves: leaves,
+    );
+    notifyListeners();
+  }
 
   /// Initialize user from Firebase
   Future<void> initialize(String userId) async {

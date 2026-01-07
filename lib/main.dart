@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-// Firebase imports - uncomment when firebase is configured
-// import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/env/env_config.dart';
 import 'providers/course_provider.dart';
@@ -11,6 +12,7 @@ import 'providers/map_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/scan_provider.dart';
 import 'screens/main_navigation.dart';
+import 'screens/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,14 +20,31 @@ void main() async {
   // Load environment variables
   await dotenv.load(fileName: '.env');
 
-  // Initialize Firebase - uncomment when firebase is configured
-  // await Firebase.initializeApp();
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
-  runApp(const PlantGoApp());
+  // Check if user has completed onboarding
+  final prefs = await SharedPreferences.getInstance();
+  final hasCompletedOnboarding = prefs.getBool('hasCompletedOnboarding') ?? false;
+  final userName = prefs.getString('userName');
+
+  runApp(PlantGoApp(
+    hasCompletedOnboarding: hasCompletedOnboarding,
+    userName: userName,
+  ));
 }
 
 class PlantGoApp extends StatelessWidget {
-  const PlantGoApp({super.key});
+  final bool hasCompletedOnboarding;
+  final String? userName;
+
+  const PlantGoApp({
+    super.key,
+    required this.hasCompletedOnboarding,
+    this.userName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,14 +52,16 @@ class PlantGoApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => CourseProvider()),
         ChangeNotifierProvider(create: (_) => MapProvider()),
-        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()..setUserName(userName ?? '')),
         ChangeNotifierProvider(create: (_) => ScanProvider()),
       ],
       child: MaterialApp(
         title: 'PlantGo',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: const MainNavigation(),
+        home: hasCompletedOnboarding 
+            ? const MainNavigation() 
+            : const WelcomeScreen(),
       ),
     );
   }

@@ -1,16 +1,19 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme/app_colors.dart';
 import '../models/level.dart';
 import '../providers/course_provider.dart';
-import '../providers/map_provider.dart';
-import '../providers/scan_provider.dart';
-import '../widgets/riddle_card.dart';
-import 'plant_discovery_screen.dart';
+import '../providers/user_provider.dart';
+import '../services/treasure_service.dart';
+import '../services/user_service.dart';
+import 'animated_scanner_screen.dart';
+import 'map_exploration_screen.dart';
 
-/// Level Detail Screen - Shows riddle and map for active level
+/// Level Detail Screen - Shows riddle and scan button (no map)
 class LevelDetailScreen extends StatefulWidget {
   const LevelDetailScreen({super.key});
 
@@ -18,36 +21,78 @@ class LevelDetailScreen extends StatefulWidget {
   State<LevelDetailScreen> createState() => _LevelDetailScreenState();
 }
 
-class _LevelDetailScreenState extends State<LevelDetailScreen> {
-  final MapController _mapController = MapController();
-  bool _mapReady = false;
+class _LevelDetailScreenState extends State<LevelDetailScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _pulseAnimation;
+  bool _isLoading = false;
+  bool _plantFound = false;
+  String? _foundPlantName;
+  String? _foundTreasureId;
+  Treasure? _foundTreasure;
 
   @override
   void initState() {
     super.initState();
-    // Initialize map and get current location
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final mapProvider = context.read<MapProvider>();
-      await mapProvider.initialize();
-
-      // Move map to current location once ready
-      if (mounted) {
-        setState(() => _mapReady = true);
-        _moveToCurrentLocation();
-      }
-    });
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    _animationController.repeat(reverse: true);
+    
+    // Check if level is already completed
+    _checkLevelCompletion();
   }
 
-  void _moveToCurrentLocation() {
-    if (!_mapReady) return;
-
-    final mapProvider = context.read<MapProvider>();
+  Future<void> _checkLevelCompletion() async {
     try {
-      _mapController.move(mapProvider.userLocation, mapProvider.zoom);
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('deviceId') ?? 'unknown';
+      
+      if (userId != 'unknown') {
+        final userService = UserService();
+        final treasureService = TreasureService();
+        
+        // Get the level from context (need to wait for build)
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (!mounted) return;
+        
+        final courseProvider = context.read<CourseProvider>();
+        final level = courseProvider.selectedLevel;
+        
+        if (level != null) {
+          // Check if level is completed
+          final isCompleted = await userService.hasCompletedLevel(userId, level.id);
+          
+          if (isCompleted) {
+            // Get the treasure for this level
+            final treasures = await treasureService.getUserTreasures(userId);
+            final levelTreasure = treasures.where((t) => t.levelId == level.id).firstOrNull;
+            
+            if (levelTreasure != null && mounted) {
+              setState(() {
+                _plantFound = true;
+                _foundPlantName = levelTreasure.commonName;
+                _foundTreasureId = levelTreasure.id;
+                _foundTreasure = levelTreasure;
+              });
+            }
+          }
+        }
+      }
     } catch (e) {
-      // Map controller might not be ready yet
-      debugPrint('Map move delayed: $e');
+      print('❌ Error checking level completion: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   @override
@@ -61,116 +106,531 @@ class _LevelDetailScreenState extends State<LevelDetailScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          // Map as background
-          _buildMap(context),
-
-          // Content overlay
-          SafeArea(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 _buildAppBar(context, level),
-                const Spacer(),
+                const SizedBox(height: 24),
+                _buildLevelHeader(level),
+                const SizedBox(height: 32),
                 _buildRiddleCard(level),
-                const SizedBox(height: 16),
+                const SizedBox(height: 32),
+                _buildPlantHint(level),
+                const SizedBox(height: 40),
                 _buildScanButton(context, level),
                 const SizedBox(height: 24),
+                if (_plantFound && _foundTreasure != null)
+                  _buildFoundPlantInfo(),
+                if (_plantFound && _foundTreasure != null)
+                  const SizedBox(height: 24),
+                _buildTip(),
+                const SizedBox(height: 40),
               ],
             ),
           ),
-
-          // Location button
-          Positioned(
-            right: 16,
-            top: MediaQuery.of(context).padding.top + 80,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                  ),
-                ],
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.my_location_rounded),
-                color: AppColors.primary,
-                onPressed: _moveToCurrentLocation,
-              ),
-            ),
-          ),
-
-          // Target marker representation
-          _buildTargetMarker(context),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildAppBar(BuildContext context, Level level) {
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Row(
-        children: [
-          // Back button
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
+    return Row(
+      children: [
+        // Back button
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () {
+              context.read<CourseProvider>().clearSelection();
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+        const Spacer(),
+        // Level badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.star_rounded, color: AppColors.primary, size: 18),
+              const SizedBox(width: 6),
+              Text(
+                'Level ${level.id}',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
-              onPressed: () {
-                context.read<CourseProvider>().clearSelection();
-                Navigator.of(context).pop();
-              },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLevelHeader(Level level) {
+    return Column(
+      children: [
+        // Level icon
+        AnimatedBuilder(
+          animation: _pulseAnimation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _pulseAnimation.value,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary,
+                      AppColors.primary.withValues(alpha: 0.7),
+                    ],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text('🌿', style: TextStyle(fontSize: 48)),
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+        Text(
+          level.subtitle.isNotEmpty ? level.subtitle : level.name,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Solve the riddle and find the plant!',
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRiddleCard(Level level) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.lightbulb_rounded,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'The Riddle',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text(
+            level.riddle,
+            style: const TextStyle(
+              fontSize: 18,
+              height: 1.6,
+              color: AppColors.textPrimary,
+              fontStyle: FontStyle.italic,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(height: 16),
+          // Difficulty indicator
+          Row(
+            children: [
+              Icon(
+                Icons.signal_cellular_alt_rounded,
+                size: 16,
+                color: _getDifficultyColor(level.clueStrength),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Difficulty: ${level.clueStrength}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _getDifficultyColor(level.clueStrength),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-          // Level info
+  Color _getDifficultyColor(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case 'high':
+        return Colors.green;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.red;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  Widget _buildPlantHint(Level level) {
+    final scientificName = _getScientificName(level.plantToFindId);
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.secondary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.secondary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.spa_rounded,
+            size: 32,
+            color: AppColors.secondary,
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'LEVEL ${level.id}',
+                  scientificName,
                   style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                    letterSpacing: 1,
-                  ),
-                ),
-                Text(
-                  level.subtitle.isNotEmpty ? level.subtitle : level.name,
-                  style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    fontStyle: FontStyle.italic,
+                    color: AppColors.secondary,
                   ),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          // Skip button
-          TextButton(
-            onPressed: () {},
-            child: const Text(
-              'Skip',
+  String _getScientificName(String plantId) {
+    switch (plantId.toLowerCase()) {
+      case 'rose':
+        return 'Rosa spp.';
+      case 'marigold':
+        return 'Tagetes erecta';
+      case 'rhododendron':
+        return 'Rhododendron arboreum';
+      case 'guava':
+        return 'Psidium guajava';
+      case 'maize':
+        return 'Zea mays';
+      default:
+        return 'Unknown species';
+    }
+  }
+
+  String _getPlantEmoji(String plantId) {
+    switch (plantId.toLowerCase()) {
+      case 'rose':
+        return '🌹';
+      case 'marigold':
+        return '🌼';
+      case 'rhododendron':
+        return '🌺';
+      case 'guava':
+        return '🍐';
+      case 'maize':
+        return '🌽';
+      default:
+        return '🌿';
+    }
+  }
+
+  Widget _buildScanButton(BuildContext context, Level level) {
+    return SizedBox(
+      width: double.infinity,
+      height: 60,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : () {
+          if (_plantFound && _foundTreasure != null) {
+            // Navigate to map exploration screen with the found treasure
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => MapExplorationScreen(
+                  highlightTreasureId: _foundTreasure!.id,
+                ),
+              ),
+            );
+          } else {
+            _openScanner(context, level);
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _plantFound ? Colors.green : AppColors.primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 4,
+          shadowColor: (_plantFound ? Colors.green : AppColors.primary).withValues(alpha: 0.4),
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(_plantFound ? Icons.explore_rounded : Icons.camera_alt_rounded, size: 28),
+                  const SizedBox(width: 12),
+                  Text(
+                    _plantFound ? 'Explore on Map' : 'Scan Plant',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildFoundPlantInfo() {
+    if (_foundTreasure == null) return const SizedBox.shrink();
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.green.withValues(alpha: 0.1),
+            Colors.green.withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.green.withValues(alpha: 0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.check_circle, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Plant Discovered!',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Plant image and info row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Plant image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: _foundTreasure!.imageBase64.isNotEmpty
+                    ? Image.memory(
+                        _decodeBase64(_foundTreasure!.imageBase64),
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 100,
+                            height: 100,
+                            color: AppColors.primaryLight.withValues(alpha: 0.2),
+                            child: const Icon(Icons.eco, size: 40, color: AppColors.primary),
+                          );
+                        },
+                      )
+                    : Container(
+                        width: 100,
+                        height: 100,
+                        color: AppColors.primaryLight.withValues(alpha: 0.2),
+                        child: const Icon(Icons.eco, size: 40, color: AppColors.primary),
+                      ),
+              ),
+              const SizedBox(width: 16),
+              // Plant info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Common Name:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      _foundTreasure!.commonName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Scientific Name:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      _foundTreasure!.plantName,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.verified, size: 16, color: Colors.green),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${(_foundTreasure!.confidence * 100).toStringAsFixed(0)}% confidence',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.green,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  dynamic _decodeBase64(String base64String) {
+    // Remove data:image prefix if present
+    String cleanBase64 = base64String;
+    if (base64String.contains(',')) {
+      cleanBase64 = base64String.split(',').last;
+    }
+    return Uri.parse('data:image/jpeg;base64,$cleanBase64').data!.contentAsBytes();
+  }
+
+  Widget _buildTip() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline_rounded, color: Colors.blue, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Point your camera at the plant and hold steady for best results!',
               style: TextStyle(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
+                color: Colors.blue.shade700,
+                fontSize: 13,
               ),
             ),
           ),
@@ -179,148 +639,251 @@ class _LevelDetailScreenState extends State<LevelDetailScreen> {
     );
   }
 
-  Widget _buildMap(BuildContext context) {
-    final mapProvider = context.watch<MapProvider>();
-
-    return FlutterMap(
-      mapController: _mapController,
-      options: MapOptions(
-        initialCenter: mapProvider.userLocation,
-        initialZoom: 16.0, // Closer zoom for level view
-        onMapReady: () {
-          setState(() => _mapReady = true);
-          _moveToCurrentLocation();
-        },
-      ),
-      children: [
-        // OSM Tile Layer
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.plantgo.app',
+  void _openScanner(BuildContext context, Level level) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AnimatedScannerScreen(
+          level: level,
+          onScanComplete: (success, plantName, imagePath) async {
+            if (success && imagePath != null) {
+              await _saveTreasure(context, level, plantName!, imagePath);
+            }
+          },
         ),
+      ),
+    );
+  }
 
-        // User location marker
-        MarkerLayer(
-          markers: [
-            Marker(
-              point: mapProvider.userLocation,
-              width: 28,
-              height: 28,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blue.withValues(alpha: 0.4),
-                      blurRadius: 12,
-                    ),
-                  ],
+  Future<void> _saveTreasure(
+    BuildContext context,
+    Level level,
+    String plantName,
+    String imagePath,
+  ) async {
+    setState(() => _isLoading = true);
+
+    try {
+      print('🌱 Starting to save treasure for $plantName');
+      
+      // Convert image to base64 with size limit
+      final imageFile = File(imagePath);
+      final imageBytes = await imageFile.readAsBytes();
+      
+      print('🌱 Image size: ${imageBytes.length} bytes');
+      
+      // Limit image size to 200KB by checking and warning
+      if (imageBytes.length > 200000) {
+        print('⚠️ Warning: Image size is large (${imageBytes.length} bytes). This might cause issues.');
+      }
+      
+      final imageBase64 = base64Encode(imageBytes);
+      print('🌱 Image converted to base64, length: ${imageBase64.length}');
+
+      // Get current location
+      Position? position;
+      try {
+        print('📍 Getting current location...');
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        print('📍 Got location: ${position.latitude}, ${position.longitude}');
+      } catch (e) {
+        print('⚠️ Location error: $e');
+        // Use default location if location fails
+        position = null;
+      }
+
+      // Get user info
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('deviceId') ?? 'unknown';
+      final userName = prefs.getString('userName') ?? 'Anonymous';
+      
+      print('👤 User: $userName ($userId)');
+
+      // Save treasure
+      final treasureService = TreasureService();
+      final userService = UserService();
+      print('💾 Calling treasureService.saveTreasure...');
+      
+      final treasure = await treasureService.saveTreasure(
+        plantName: plantName,
+        commonName: plantName,
+        latitude: position?.latitude ?? 0.0,
+        longitude: position?.longitude ?? 0.0,
+        imageBase64: imageBase64,
+        userId: userId,
+        userName: userName,
+        levelId: level.id,
+        confidence: 0.9,
+      );
+      
+      print('✅ Treasure saved successfully!');
+
+      // Update user data in Firestore
+      await userService.getOrCreateUser(userId, userName);
+      await userService.addCoins(userId, 50);
+      await userService.addLeaves(userId, 1);
+      await userService.completeLevel(userId, level.id);
+      await userService.addTreasureToUser(userId, treasure.id);
+      print('✅ User data updated in Firestore');
+
+      // Complete the level
+      if (context.mounted) {
+        print('🎯 Completing level ${level.id}');
+        final courseProvider = context.read<CourseProvider>();
+        debugPrint('📊 Before completeLevel - Levels: ${courseProvider.levels.map((l) => "${l.id}:${l.status}").join(", ")}');
+        courseProvider.completeLevel(level.id, 3);
+        debugPrint('📊 After completeLevel - Levels: ${courseProvider.levels.map((l) => "${l.id}:${l.status}").join(", ")}');
+        
+        context.read<UserProvider>().addCoins(50);
+        context.read<UserProvider>().addLeaves(1);
+
+        // Mark plant as found and store treasure
+        setState(() {
+          _plantFound = true;
+          _foundPlantName = plantName;
+          _foundTreasureId = treasure.id;
+          _foundTreasure = treasure;
+        });
+
+        // Show success dialog
+        _showSuccessDialog(context, plantName, level);
+      }
+    } catch (e, stackTrace) {
+      print('❌ Error saving treasure: $e');
+      print('Stack trace: $stackTrace');
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving treasure: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showSuccessDialog(BuildContext context, String plantName, Level level) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.green,
+                  size: 48,
                 ),
               ),
             ),
+            const SizedBox(height: 24),
+            const Text(
+              '🎉 Congratulations!',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'You found: $plantName',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Level ${level.id} Complete!',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildRewardChip('🪙', '+50 coins'),
+                const SizedBox(width: 16),
+                _buildRewardChip('🍃', '+1 leaf'),
+              ],
+            ),
+            const SizedBox(height: 24),
           ],
         ),
-      ],
-    );
-  }
-
-  Widget _buildTargetMarker(BuildContext context) {
-    return Positioned(
-      top: MediaQuery.of(context).size.height * 0.35,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.4),
-                blurRadius: 16,
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                debugPrint('🔙 Navigating back to course map');
+                final courseProvider = context.read<CourseProvider>();
+                debugPrint('📊 CourseProvider state before pop: ${courseProvider.levels.map((l) => "${l.id}:${l.status}").join(", ")}');
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop(); // Go back to course map
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-            ],
+              child: const Text(
+                'Continue',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
           ),
-          child: const Center(
-            child: Icon(Icons.eco_rounded, color: Colors.white, size: 32),
-          ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildRiddleCard(Level level) {
-    return RiddleCard(
-      riddle: level.riddle,
-      clueStrength: level.clueStrength,
-      distance: '${level.distanceHint}m',
-    );
-  }
-
-  Widget _buildScanButton(BuildContext context, Level level) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: ElevatedButton.icon(
-          onPressed: () => _handleScan(context, level),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(50),
+  Widget _buildRewardChip(String emoji, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 16)),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
-            elevation: 4,
           ),
-          icon: const Icon(Icons.camera_alt_rounded, size: 24),
-          label: const Text(
-            'Scan Plant',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          ),
-        ),
+        ],
       ),
     );
-  }
-
-  void _handleScan(BuildContext context, Level level) async {
-    final scanProvider = context.read<ScanProvider>();
-
-    // Capture image
-    await scanProvider.captureImage();
-
-    if (scanProvider.capturedImagePath != null) {
-      // Verify plant
-      await scanProvider.verifyPlant(level.plantToFindId);
-
-      if (scanProvider.state == ScanState.success) {
-        // Navigate to discovery screen
-        if (context.mounted) {
-          final plant = context.read<CourseProvider>().getPlantForLevel(
-            level.id,
-          );
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  PlantDiscoveryScreen(plant: plant!, levelId: level.id),
-            ),
-          );
-        }
-      } else {
-        // Show error
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(scanProvider.errorMessage ?? 'Try again'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-      }
-    }
   }
 }
