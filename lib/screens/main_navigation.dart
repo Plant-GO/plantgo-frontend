@@ -12,13 +12,15 @@ import '../core/theme/app_colors.dart';
 import '../services/plant_id_service.dart';
 import '../services/treasure_service.dart';
 import '../services/user_service.dart';
+import '../services/nft_minting_service.dart';
 import '../providers/user_provider.dart';
 import '../providers/course_provider.dart';
 import '../providers/wallet_provider.dart';
 import '../providers/nft_provider.dart';
 import '../models/user_progress.dart';
 import '../models/plant.dart';
-import '../blockchain/card_rarity.dart';
+import '../blockchain/blockchain.dart';
+import '../widgets/mint_progress_dialog.dart';
 import 'collections_screen.dart';
 import 'course_map_screen.dart';
 import 'map_exploration_screen.dart';
@@ -748,93 +750,36 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
     );
   }
 
-  /// Show NFT minted success dialog
-  void _showNFTMintedDialog(BuildContext context, String plantName, String rarity) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 16),
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(CardRarityExtension.fromString(rarity.replaceAll(' ', '')).primaryColor),
-                    Color(CardRarityExtension.fromString(rarity.replaceAll(' ', '')).secondaryColor),
-                  ],
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(CardRarityExtension.fromString(rarity.replaceAll(' ', '')).primaryColor).withValues(alpha: 0.4),
-                    blurRadius: 16,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.auto_awesome,
-                color: Colors.white,
-                size: 40,
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              '🎉 NFT Minted!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              plantName,
-              style: const TextStyle(
-                fontSize: 18,
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(CardRarityExtension.fromString(rarity.replaceAll(' ', '')).primaryColor),
-                    Color(CardRarityExtension.fromString(rarity.replaceAll(' ', '')).secondaryColor),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                rarity,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Your plant discovery has been minted as an NFT! Check your collection to view it.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Awesome!'),
-          ),
-        ],
+  /// Show NFT minted success dialog with fancy animation
+  Future<void> _showNFTMintedDialog(BuildContext context, String plantName, String rarity) async {
+    // Parse rarity to CardRarity enum
+    final cardRarity = CardRarityExtension.fromString(rarity.replaceAll(' ', ''));
+    
+    // Create a completed future since NFT was already minted
+    final completedMintFuture = Future<MintResult>.value(MintResult(
+      success: true,
+      nftCard: NFTCard(
+        ownerWallet: 'device_${context.read<UserProvider>().deviceId}',
+        plantName: plantName,
+        rarity: cardRarity,
+        nftMint: 'auto_minted',
+        mintedAt: DateTime.now(),
       ),
+      message: 'NFT auto-minted!',
+    ));
+
+    await MintProgressDialog.show(
+      context: context,
+      plantName: plantName,
+      scientificName: null,
+      imageBase64: _image != null ? base64Encode(await _image!.readAsBytes()) : null,
+      habitat: null,
+      region: null,
+      waterCare: null,
+      lightCare: null,
+      xpReward: 50,
+      isNewDiscovery: cardRarity.isLegendary,
+      mintFuture: completedMintFuture,
     );
   }
 

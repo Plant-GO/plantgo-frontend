@@ -4,6 +4,7 @@ import '../blockchain/blockchain.dart';
 import '../core/theme/app_colors.dart';
 import '../providers/wallet_provider.dart';
 import '../providers/nft_provider.dart';
+import '../providers/user_provider.dart';
 import '../widgets/nft_card_widget.dart';
 import '../widgets/wallet_connect_button.dart';
 
@@ -31,7 +32,10 @@ class _NFTCollectionScreenState extends State<NFTCollectionScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: _filterTabs.length, vsync: this);
-    _loadNFTs();
+    // Use addPostFrameCallback to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadNFTs();
+    });
   }
 
   @override
@@ -42,8 +46,23 @@ class _NFTCollectionScreenState extends State<NFTCollectionScreen>
 
   void _loadNFTs() {
     final wallet = context.read<WalletProvider>();
+    final userProvider = context.read<UserProvider>();
+    
+    // Use Phantom wallet if connected, otherwise use device wallet
+    String? walletAddress;
     if (wallet.isConnected && wallet.walletAddress != null) {
-      context.read<NFTProvider>().loadNFTs(wallet.walletAddress!);
+      walletAddress = wallet.walletAddress!;
+      debugPrint('🔑 NFT Collection: Using Phantom wallet: $walletAddress');
+    } else if (userProvider.deviceId.isNotEmpty) {
+      walletAddress = 'device_${userProvider.deviceId}';
+      debugPrint('🔑 NFT Collection: Using device wallet: $walletAddress');
+    } else {
+      debugPrint('⚠️ NFT Collection: No wallet available (deviceId: "${userProvider.deviceId}")');
+    }
+    
+    if (walletAddress != null) {
+      debugPrint('📦 NFT Collection: Loading NFTs for $walletAddress');
+      context.read<NFTProvider>().loadNFTs(walletAddress);
     }
   }
 
@@ -52,9 +71,11 @@ class _NFTCollectionScreenState extends State<NFTCollectionScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: _buildAppBar(),
-      body: Consumer<WalletProvider>(
-        builder: (context, wallet, child) {
-          if (!wallet.isConnected) {
+      body: Consumer2<WalletProvider, UserProvider>(
+        builder: (context, wallet, userProvider, child) {
+          // Show NFT content if either Phantom is connected OR we have device ID
+          final hasWallet = wallet.isConnected || userProvider.deviceId.isNotEmpty;
+          if (!hasWallet) {
             return _buildConnectWalletPrompt();
           }
           return _buildNFTContent();

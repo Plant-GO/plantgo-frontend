@@ -395,7 +395,9 @@ class _PlantDiscoveryScreenState extends State<PlantDiscoveryScreen>
                   const Icon(Icons.auto_awesome, size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    wallet.isConnected ? 'Mint as NFT' : 'Connect Wallet & Mint',
+                    wallet.isConnected
+                        ? 'Mint as NFT'
+                        : 'Connect Wallet & Mint',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -413,7 +415,7 @@ class _PlantDiscoveryScreenState extends State<PlantDiscoveryScreen>
   Future<void> _handleMintNFT(BuildContext context) async {
     final walletProvider = context.read<WalletProvider>();
     final nftProvider = context.read<NFTProvider>();
-    
+
     // First ensure wallet is connected
     if (!walletProvider.isConnected) {
       final connected = await walletProvider.connect();
@@ -429,13 +431,13 @@ class _PlantDiscoveryScreenState extends State<PlantDiscoveryScreen>
         return;
       }
     }
-    
+
     // Check if user already owns this plant as NFT
     final alreadyOwns = await nftProvider.checkOwnership(
       walletAddress: walletProvider.walletAddress!,
       plantName: widget.plant.name,
     );
-    
+
     if (alreadyOwns && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -445,7 +447,7 @@ class _PlantDiscoveryScreenState extends State<PlantDiscoveryScreen>
       );
       return;
     }
-    
+
     // Show minting dialog
     if (context.mounted) {
       final mintFuture = nftProvider.mintPlantDiscoveryNFT(
@@ -454,13 +456,21 @@ class _PlantDiscoveryScreenState extends State<PlantDiscoveryScreen>
         isNewSpecies: widget.plant.rarity == PlantRarity.legendary,
         scientificName: widget.plant.scientificName,
       );
-      
+
       final result = await MintProgressDialog.show(
         context: context,
         plantName: widget.plant.name,
+        scientificName: widget.plant.scientificName,
+        imageUrl: widget.plant.imageUrl,
+        habitat: widget.plant.habitat,
+        region: widget.plant.region,
+        waterCare: widget.plant.careInfo.water,
+        lightCare: widget.plant.careInfo.light,
+        xpReward: widget.plant.xpReward,
+        isNewDiscovery: widget.plant.rarity == PlantRarity.legendary,
         mintFuture: mintFuture,
       );
-      
+
       if (result?.success == true && context.mounted) {
         // Reload NFTs
         nftProvider.loadNFTs(walletProvider.walletAddress!);

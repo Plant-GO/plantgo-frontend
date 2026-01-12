@@ -82,6 +82,7 @@ class NFTProvider extends ChangeNotifier {
   Future<void> loadNFTs(String walletAddress) async {
     if (_isLoading) return;
 
+    debugPrint('📦 NFTProvider: Loading NFTs for wallet: $walletAddress');
     _walletAddress = walletAddress;
     _isLoading = true;
     _errorMessage = null;
@@ -89,13 +90,14 @@ class NFTProvider extends ChangeNotifier {
 
     try {
       _nfts = await _mintingService.getUserNFTs(walletAddress);
+      debugPrint('📦 NFTProvider: Found ${_nfts.length} NFTs');
       _nfts.sort((a, b) => (b.mintedAt ?? DateTime.now())
           .compareTo(a.mintedAt ?? DateTime.now()));
       
       // Start listening for real-time updates
       _subscribeToNFTs();
     } catch (e) {
-      debugPrint('NFTProvider: Load NFTs error: $e');
+      debugPrint('❌ NFTProvider: Load NFTs error: $e');
       _errorMessage = 'Failed to load NFTs: $e';
     } finally {
       _isLoading = false;

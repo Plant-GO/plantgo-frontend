@@ -201,20 +201,28 @@ class WalletService {
   /// Launch Phantom app via deep link
   Future<bool> _launchPhantom(Uri url) async {
     try {
-      // Check if Phantom is installed
-      if (await canLaunchUrl(url)) {
-        return await launchUrl(
-          url,
-          mode: LaunchMode.externalApplication,
-        );
-      } else {
-        // Phantom not installed - open app store
-        debugPrint('WalletService: Phantom not installed');
-        await _openPhantomAppStore();
-        return false;
+      debugPrint('WalletService: Attempting to launch Phantom: $url');
+      
+      // Try to launch directly - Android package visibility means canLaunchUrl 
+      // may return false even when the app is installed
+      final launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+      
+      if (launched) {
+        debugPrint('WalletService: Successfully launched Phantom');
+        return true;
       }
+      
+      // If launch failed, Phantom might not be installed
+      debugPrint('WalletService: Launch returned false - Phantom may not be installed');
+      await _openPhantomAppStore();
+      return false;
     } catch (e) {
       debugPrint('WalletService: Error launching Phantom: $e');
+      // Try opening app store as fallback
+      await _openPhantomAppStore();
       return false;
     }
   }
