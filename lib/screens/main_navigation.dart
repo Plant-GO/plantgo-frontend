@@ -14,12 +14,16 @@ import '../services/treasure_service.dart';
 import '../services/user_service.dart';
 import '../providers/user_provider.dart';
 import '../providers/course_provider.dart';
+import '../providers/wallet_provider.dart';
+import '../providers/nft_provider.dart';
 import '../models/user_progress.dart';
 import '../models/plant.dart';
+import '../blockchain/card_rarity.dart';
 import 'collections_screen.dart';
 import 'course_map_screen.dart';
 import 'map_exploration_screen.dart';
-import 'animated_scanner_screen.dart';
+import 'community_verification_screen.dart';
+import '../providers/verification_provider.dart';
 
 /// Main navigation shell with bottom tab bar and floating map button
 class MainNavigation extends StatefulWidget {
@@ -30,11 +34,11 @@ class MainNavigation extends StatefulWidget {
 }
 
 class _MainNavigationState extends State<MainNavigation> {
-  int _currentIndex = 0; // Start on Game tab (as requested for Hult demo)
+  int _currentIndex = 0; // Start on Course tab
 
   final List<Widget> _screens = [
-    const _GameScreen(),
     const CourseMapScreen(),
+    const CommunityVerificationScreen(),
     const CollectionsScreen(),
     const _IdentifyScreen(),
   ];
@@ -65,6 +69,18 @@ class _MainNavigationState extends State<MainNavigation> {
           userProvider.setCoinsAndLeaves(user.coins, user.leaves);
           debugPrint('💰 Loaded ${user.coins} coins and ${user.leaves} leaves for $userId');
         }
+
+        // Initialize verification provider
+        final verificationProvider = Provider.of<VerificationProvider>(context, listen: false);
+        verificationProvider.initialize(userId);
+        debugPrint('✅ Initialized verification provider for $userId');
+
+        // Initialize NFT provider with wallet address
+        final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+        final nftProvider = Provider.of<NFTProvider>(context, listen: false);
+        final walletAddress = walletProvider.walletAddress ?? 'device_$userId';
+        nftProvider.initialize(walletAddress);
+        debugPrint('🎴 Initialized NFT provider with wallet: $walletAddress');
       }
     } catch (e) {
       debugPrint('❌ Error loading user progress: $e');
@@ -129,8 +145,8 @@ class _MainNavigationState extends State<MainNavigation> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               // Left side items
-              _buildNavItem(0, Icons.home_rounded, 'Game'),
-              _buildNavItem(1, Icons.route_rounded, 'Course'),
+              _buildNavItem(0, Icons.route_rounded, 'Course'),
+              _buildNavItemWithBadge(1, Icons.how_to_vote_rounded, 'Verify'),
 
               // Center gap for FAB
               const SizedBox(width: 60),
@@ -180,185 +196,66 @@ class _MainNavigationState extends State<MainNavigation> {
       ),
     );
   }
-}
 
-/// Game Screen - Main hub with scrollable content
-class _GameScreen extends StatelessWidget {
-  const _GameScreen();
+  Widget _buildNavItemWithBadge(int index, IconData icon, String label) {
+    final isSelected = _currentIndex == index;
+    final color = isSelected ? AppColors.primary : AppColors.textTertiary;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 40),
-                // Header
-                const Center(
-                  child: Text(
-                    '🌿 Welcome to PlantGo',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Center(
-                  child: Text(
-                    'Discover plants in your area',
-                    style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-                  ),
-                ),
-                const SizedBox(height: 48),
-
-                // Feature cards - Now tappable and navigable
-                _buildFeatureCard(
-                  context: context,
-                  icon: Icons.route_rounded,
-                  title: 'Course Mode',
-                  subtitle: 'Follow riddles to find plants',
-                  color: AppColors.primary,
-                  onTap: () {
-                    // Navigate to Course tab
-                    final navState = context.findAncestorStateOfType<_MainNavigationState>();
-                    navState?._navigateToTab(1);
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildFeatureCard(
-                  context: context,
-                  icon: Icons.explore_rounded,
-                  title: 'Explore Mode',
-                  subtitle: 'Discover plants on the map',
-                  color: AppColors.secondary,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const MapExplorationScreen()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildFeatureCard(
-                  context: context,
-                  icon: Icons.collections_rounded,
-                  title: 'My Collection',
-                  subtitle: 'View your discovered plants',
-                  color: const Color(0xFF9C7CF4),
-                  onTap: () {
-                    // Navigate to Collections tab
-                    final navState = context.findAncestorStateOfType<_MainNavigationState>();
-                    navState?._navigateToTab(2);
-                  },
-                ),
-
-                const SizedBox(height: 32),
-
-                // Tip
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.lightbulb_outline_rounded,
-                        color: AppColors.primary,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          'Tap "Course Mode" to start finding plants with riddles!',
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 14,
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Consumer<VerificationProvider>(
+              builder: (context, provider, child) {
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(icon, color: color, size: 24),
+                    if (provider.pendingCount > 0)
+                      Positioned(
+                        right: -8,
+                        top: -4,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            provider.pendingCount > 9 ? '9+' : '${provider.pendingCount}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 100), // Space for FAB and bottom nav
-              ],
+                  ],
+                );
+              },
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFeatureCard({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(16),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: color,
               ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: AppColors.textTertiary,
-              size: 16,
             ),
           ],
         ),
@@ -753,6 +650,7 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                     // Save as treasure to Firebase (this will appear in collections and map)
                     try {
                       final userProvider = context.read<UserProvider>();
+                      final walletProvider = context.read<WalletProvider>();
                       final treasureService = TreasureService();
                       
                       debugPrint('💾 Saving treasure to Firebase...');
@@ -760,8 +658,12 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                       debugPrint('   Common Name: $displayName');
                       debugPrint('   Scientific Name: $scientificName');
                       debugPrint('   Location: ${position.latitude}, ${position.longitude}');
+                      debugPrint('   Wallet: ${walletProvider.walletAddress ?? "device_${userProvider.deviceId}"}');
                       
-                      await treasureService.saveTreasure(
+                      // Get wallet address (use device ID if no wallet connected)
+                      final walletAddress = walletProvider.walletAddress ?? 'device_${userProvider.deviceId}';
+                      
+                      final result = await treasureService.saveTreasure(
                         plantName: scientificName,
                         commonName: displayName,
                         latitude: position.latitude,
@@ -772,6 +674,7 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                         levelId: 0, // No riddle level for manual identification
                         confidence: topMatch.probability,
                         description: description,
+                        walletAddress: walletAddress,
                       );
                       
                       debugPrint('✅ Treasure saved successfully to Firebase!');
@@ -780,13 +683,26 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                         Navigator.pop(context); // Close loading dialog
                         Navigator.pop(context); // Close result dialog
                         
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('$displayName added to your collection and map!'),
-                            backgroundColor: AppColors.success,
-                            duration: const Duration(seconds: 3),
-                          ),
-                        );
+                        // Show appropriate message based on verification and NFT status
+                        if (result.autoVerified && result.nftMinted) {
+                          _showNFTMintedDialog(context, displayName, result.nftRarity ?? 'NFT');
+                        } else if (result.autoVerified) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('$displayName verified and added to collection!'),
+                              backgroundColor: AppColors.success,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('$displayName submitted for community verification (${(topMatch.probability * 100).toStringAsFixed(0)}% confidence)'),
+                              backgroundColor: Colors.orange,
+                              duration: const Duration(seconds: 4),
+                            ),
+                          );
+                        }
                       }
                     } catch (e, stackTrace) {
                       debugPrint('❌ Error saving treasure to Firebase: $e');
@@ -828,6 +744,96 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Show NFT minted success dialog
+  void _showNFTMintedDialog(BuildContext context, String plantName, String rarity) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(CardRarityExtension.fromString(rarity.replaceAll(' ', '')).primaryColor),
+                    Color(CardRarityExtension.fromString(rarity.replaceAll(' ', '')).secondaryColor),
+                  ],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(CardRarityExtension.fromString(rarity.replaceAll(' ', '')).primaryColor).withValues(alpha: 0.4),
+                    blurRadius: 16,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.auto_awesome,
+                color: Colors.white,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              '🎉 NFT Minted!',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              plantName,
+              style: const TextStyle(
+                fontSize: 18,
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(CardRarityExtension.fromString(rarity.replaceAll(' ', '')).primaryColor),
+                    Color(CardRarityExtension.fromString(rarity.replaceAll(' ', '')).secondaryColor),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                rarity,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Your plant discovery has been minted as an NFT! Check your collection to view it.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Awesome!'),
+          ),
+        ],
       ),
     );
   }

@@ -5,8 +5,11 @@ import '../models/plant.dart';
 import '../providers/course_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/map_provider.dart';
+import '../providers/wallet_provider.dart';
+import '../providers/nft_provider.dart';
 import '../models/user_progress.dart';
 import '../widgets/care_info_chip.dart';
+import '../widgets/mint_progress_dialog.dart';
 
 /// Plant Discovery Screen - Celebration screen when finding a plant
 class PlantDiscoveryScreen extends StatefulWidget {
@@ -80,6 +83,8 @@ class _PlantDiscoveryScreenState extends State<PlantDiscoveryScreen>
                       _buildCareInfo(),
                       const SizedBox(height: 32),
                       _buildAddButton(context),
+                      const SizedBox(height: 16),
+                      _buildMintNFTButton(context),
                       const SizedBox(height: 24),
                       _buildActionButtons(context),
                       const SizedBox(height: 32),
@@ -354,6 +359,113 @@ class _PlantDiscoveryScreenState extends State<PlantDiscoveryScreen>
         ),
       ),
     );
+  }
+
+  Widget _buildMintNFTButton(BuildContext context) {
+    return Consumer<WalletProvider>(
+      builder: (context, wallet, child) {
+        return SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: AppColors.phantomGradient,
+              borderRadius: BorderRadius.circular(50),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF9945FF).withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: () => _handleMintNFT(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(50),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.auto_awesome, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    wallet.isConnected ? 'Mint as NFT' : 'Connect Wallet & Mint',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleMintNFT(BuildContext context) async {
+    final walletProvider = context.read<WalletProvider>();
+    final nftProvider = context.read<NFTProvider>();
+    
+    // First ensure wallet is connected
+    if (!walletProvider.isConnected) {
+      final connected = await walletProvider.connect();
+      if (!connected) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please connect your wallet to mint NFTs'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+    }
+    
+    // Check if user already owns this plant as NFT
+    final alreadyOwns = await nftProvider.checkOwnership(
+      walletAddress: walletProvider.walletAddress!,
+      plantName: widget.plant.name,
+    );
+    
+    if (alreadyOwns && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You already own an NFT for this plant!'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+      return;
+    }
+    
+    // Show minting dialog
+    if (context.mounted) {
+      final mintFuture = nftProvider.mintPlantDiscoveryNFT(
+        walletAddress: walletProvider.walletAddress!,
+        plantName: widget.plant.name,
+        isNewSpecies: widget.plant.rarity == PlantRarity.legendary,
+        scientificName: widget.plant.scientificName,
+      );
+      
+      final result = await MintProgressDialog.show(
+        context: context,
+        plantName: widget.plant.name,
+        mintFuture: mintFuture,
+      );
+      
+      if (result?.success == true && context.mounted) {
+        // Reload NFTs
+        nftProvider.loadNFTs(walletProvider.walletAddress!);
+      }
+    }
   }
 
   Widget _buildActionButtons(BuildContext context) {

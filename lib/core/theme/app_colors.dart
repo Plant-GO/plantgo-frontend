@@ -62,4 +62,18 @@ class AppColors {
     end: Alignment.bottomRight,
     colors: [surface, surfaceVariant],
   );
+
+  // NFT Card Rarity Colors (matching Solana program)
+  static const Color nftCommon = Color(0xFF4A5568);        // GenesisFragment
+  static const Color nftRare = Color(0xFF2B6CB0);          // AstralShard
+  static const Color nftEpic = Color(0xFF805AD5);          // MythicCrest
+  static const Color nftMastery = Color(0xFFD69E2E);       // AscendantSeal
+  static const Color nftKnowledge = Color(0xFF319795);     // CodexOfInsight
+  static const Color nftLegendaryRed = Color(0xFFC53030);  // PrimordialRelic
+  static const Color nftLegendaryPink = Color(0xFFD53F8C); // AuroraSeed
+
+  // Phantom Wallet Gradient
+  static const LinearGradient phantomGradient = LinearGradient(
+    colors: [Color(0xFF9945FF), Color(0xFF14F195)],
+  );
 }

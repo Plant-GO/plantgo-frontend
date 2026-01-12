@@ -48,6 +48,14 @@ dependencies:
   shared_preferences: ^2.2.2
   uuid: ^4.3.3
 
+  # Blockchain / Wallet
+  url_launcher: ^6.2.4       # Deep link handling for Phantom
+  app_links: ^6.3.0          # Universal links for wallet callback
+  
+  # UI Enhancements for NFT Cards
+  shimmer: ^3.0.0            # Shimmer effects for loading/cards
+  lottie: ^3.1.0             # Success animations
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

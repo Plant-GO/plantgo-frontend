@@ -11,6 +11,9 @@ import 'providers/course_provider.dart';
 import 'providers/map_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/scan_provider.dart';
+import 'providers/wallet_provider.dart';
+import 'providers/nft_provider.dart';
+import 'providers/verification_provider.dart';
 import 'screens/main_navigation.dart';
 import 'screens/welcome_screen.dart';
 
@@ -54,6 +57,11 @@ class PlantGoApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MapProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()..setUserName(userName ?? '')),
         ChangeNotifierProvider(create: (_) => ScanProvider()),
+        // Blockchain providers
+        ChangeNotifierProvider(create: (_) => WalletProvider()..initialize()),
+        ChangeNotifierProvider(create: (_) => NFTProvider()),
+        // Verification provider
+        ChangeNotifierProvider(create: (_) => VerificationProvider()),
       ],
       child: MaterialApp(
         title: 'PlantGo',

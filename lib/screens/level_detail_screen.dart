@@ -8,8 +8,11 @@ import '../core/theme/app_colors.dart';
 import '../models/level.dart';
 import '../providers/course_provider.dart';
 import '../providers/user_provider.dart';
+import '../providers/wallet_provider.dart';
+import '../providers/nft_provider.dart';
 import '../services/treasure_service.dart';
 import '../services/user_service.dart';
+import '../widgets/mint_progress_dialog.dart';
 import 'animated_scanner_screen.dart';
 import 'map_exploration_screen.dart';
 
@@ -705,7 +708,7 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
       final userService = UserService();
       print('💾 Calling treasureService.saveTreasure...');
       
-      final treasure = await treasureService.saveTreasure(
+      final result = await treasureService.saveTreasure(
         plantName: plantName,
         commonName: plantName,
         latitude: position?.latitude ?? 0.0,
@@ -717,6 +720,7 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
         confidence: 0.9,
       );
       
+      final treasure = result.treasure;
       print('✅ Treasure saved successfully!');
 
       // Update user data in Firestore
@@ -773,92 +777,17 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 16),
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.check_circle_rounded,
-                  color: Colors.green,
-                  size: 48,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              '🎉 Congratulations!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'You found: $plantName',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Level ${level.id} Complete!',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildRewardChip('🪙', '+50 coins'),
-                const SizedBox(width: 16),
-                _buildRewardChip('🍃', '+1 leaf'),
-              ],
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                debugPrint('🔙 Navigating back to course map');
-                final courseProvider = context.read<CourseProvider>();
-                debugPrint('📊 CourseProvider state before pop: ${courseProvider.levels.map((l) => "${l.id}:${l.status}").join(", ")}');
-                Navigator.of(context).pop(); // Close dialog
-                Navigator.of(context).pop(); // Go back to course map
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: const Text(
-                'Continue',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ],
+      builder: (dialogContext) => _SuccessDialogContent(
+        plantName: plantName,
+        level: level,
+        treasure: _foundTreasure,
+        onContinue: () {
+          debugPrint('🔙 Navigating back to course map');
+          final courseProvider = context.read<CourseProvider>();
+          debugPrint('📊 CourseProvider state before pop: ${courseProvider.levels.map((l) => "${l.id}:${l.status}").join(", ")}');
+          Navigator.of(dialogContext).pop(); // Close dialog
+          Navigator.of(context).pop(); // Go back to course map
+        },
       ),
     );
   }
@@ -887,3 +816,299 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
     );
   }
 }
+
+/// Success dialog with NFT minting option
+class _SuccessDialogContent extends StatefulWidget {
+  final String plantName;
+  final Level level;
+  final Treasure? treasure;
+  final VoidCallback onContinue;
+
+  const _SuccessDialogContent({
+    required this.plantName,
+    required this.level,
+    this.treasure,
+    required this.onContinue,
+  });
+
+  @override
+  State<_SuccessDialogContent> createState() => _SuccessDialogContentState();
+}
+
+class _SuccessDialogContentState extends State<_SuccessDialogContent> {
+  bool _isMinting = false;
+  bool _hasMinted = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 16),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.green.withAlpha(38),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.check_circle_rounded,
+                color: Colors.green,
+                size: 48,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            '🎉 Congratulations!',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'You found: ${widget.plantName}',
+            style: const TextStyle(
+              fontSize: 16,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Level ${widget.level.id} Complete!',
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.primary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildRewardChip('🪙', '+50 coins'),
+              const SizedBox(width: 16),
+              _buildRewardChip('🍃', '+1 leaf'),
+            ],
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+      actions: [
+        Column(
+          children: [
+            // NFT Mint Button
+            if (!_hasMinted)
+              Consumer<WalletProvider>(
+                builder: (context, wallet, child) {
+                  return SizedBox(
+                    width: double.infinity,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF9945FF), Color(0xFF14F195)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: _isMinting ? null : () => _handleMintNFT(context, wallet),
+                        icon: _isMinting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.auto_awesome, size: 20),
+                        label: Text(
+                          _isMinting
+                              ? 'Minting...'
+                              : wallet.isConnected
+                                  ? 'Mint as NFT'
+                                  : 'Connect Wallet & Mint',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            
+            if (_hasMinted)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.green.withAlpha(25),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.green.withAlpha(77)),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'NFT Minted! ✨',
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            const SizedBox(height: 12),
+            
+            // Continue Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: widget.onContinue,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text(
+                  'Continue',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRewardChip(String emoji, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight.withAlpha(38),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 16)),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleMintNFT(BuildContext context, WalletProvider wallet) async {
+    // First ensure wallet is connected
+    if (!wallet.isConnected) {
+      final connected = await wallet.connect();
+      if (!connected) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please connect your wallet to mint NFTs'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    setState(() => _isMinting = true);
+
+    try {
+      final nftProvider = context.read<NFTProvider>();
+      
+      // Check if user already owns this plant as NFT
+      final alreadyOwns = await nftProvider.checkOwnership(
+        walletAddress: wallet.walletAddress!,
+        plantName: widget.plantName,
+      );
+
+      if (alreadyOwns && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You already own an NFT for this plant!'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+        setState(() => _isMinting = false);
+        return;
+      }
+
+      // Create the mint future
+      final mintFuture = nftProvider.mintPlantDiscoveryNFT(
+        walletAddress: wallet.walletAddress!,
+        plantName: widget.plantName,
+        isNewSpecies: false, // Determined by backend
+        scientificName: widget.treasure?.plantName,
+      );
+
+      // Show minting dialog
+      if (context.mounted) {
+        final result = await MintProgressDialog.show(
+          context: context,
+          plantName: widget.plantName,
+          mintFuture: mintFuture,
+        );
+
+        if (result?.success == true) {
+          setState(() {
+            _hasMinted = true;
+            _isMinting = false;
+          });
+          // Reload NFTs
+          nftProvider.loadNFTs(wallet.walletAddress!);
+        } else {
+          setState(() => _isMinting = false);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error minting NFT: $e');
+      setState(() => _isMinting = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Minting failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+}
+
