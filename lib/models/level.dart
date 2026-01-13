@@ -103,7 +103,8 @@ class SampleLevels {
       id: 1,
       name: 'Level 1',
       subtitle: 'The Queen of Flowers',
-      riddle: '🌹 I am the queen of gardens, beloved by all,\n'
+      riddle:
+          '🌹 I am the queen of gardens, beloved by all,\n'
           'With petals soft as velvet, standing proud and tall.\n'
           'Red, pink, or white - my colors shine so bright,\n'
           'I\'m gifted on Valentine\'s, a romantic delight.\n'
@@ -118,7 +119,8 @@ class SampleLevels {
       id: 2,
       name: 'Level 2',
       subtitle: 'Festival Gold',
-      riddle: '🌼 In festivals I shine like the morning sun,\n'
+      riddle:
+          '🌼 In festivals I shine like the morning sun,\n'
           'Orange and yellow petals, woven into garlands one by one.\n'
           'In temples and weddings, I\'m always found,\n'
           'My fragrance fills the air all around.\n'
@@ -133,7 +135,8 @@ class SampleLevels {
       id: 3,
       name: 'Level 3',
       subtitle: 'Mountain Beauty',
-      riddle: '🌺 High in the mountains, I bloom with grace,\n'
+      riddle:
+          '🌺 High in the mountains, I bloom with grace,\n'
           'Nepal\'s national flower, a beloved embrace.\n'
           'Pink and red clusters on woody stems grow,\n'
           'In spring I put on nature\'s greatest show.\n'
@@ -148,7 +151,8 @@ class SampleLevels {
       id: 4,
       name: 'Level 4',
       subtitle: 'Tropical Treasure',
-      riddle: '🍐 I\'m a tropical fruit with seeds inside,\n'
+      riddle:
+          '🍐 I\'m a tropical fruit with seeds inside,\n'
           'Green skin turning yellow is my ripening guide.\n'
           'Rich in vitamin C, I help you stay strong,\n'
           'My fragrance is sweet, you can\'t go wrong.\n'
@@ -163,7 +167,8 @@ class SampleLevels {
       id: 5,
       name: 'Level 5',
       subtitle: 'Golden Grains',
-      riddle: '🌽 I stand tall in fields, in rows so neat,\n'
+      riddle:
+          '🌽 I stand tall in fields, in rows so neat,\n'
           'My golden kernels make a tasty treat.\n'
           'Popcorn and tortillas from me are made,\n'
           'A staple crop, in many lands displayed.\n'
@@ -179,16 +184,33 @@ class SampleLevels {
   /// Alternative common names for matching with Plant.ID API
   static const Map<String, List<String>> plantAliases = {
     'rose': ['rose', 'rosa', 'garden rose', 'wild rose', 'climbing rose'],
-    'marigold': ['marigold', 'tagetes', 'african marigold', 'french marigold', 'pot marigold'],
+    'marigold': [
+      'marigold',
+      'tagetes',
+      'african marigold',
+      'french marigold',
+      'pot marigold',
+    ],
     'rhododendron': ['rhododendron', 'azalea', 'lali gurans', 'alpine rose'],
-    'guava': ['guava', 'psidium guajava', 'common guava', 'apple guava', 'lemon guava'],
+    'guava': [
+      'guava',
+      'psidium guajava',
+      'common guava',
+      'apple guava',
+      'lemon guava',
+    ],
     'maize': ['maize', 'corn', 'zea mays', 'sweet corn', 'indian corn'],
   };
 
   /// Check if identified plant matches expected plant
-  static bool isPlantMatch(String expectedPlantId, List<String> identifiedNames) {
-    final aliases = plantAliases[expectedPlantId.toLowerCase()] ?? [expectedPlantId.toLowerCase()];
-    
+  static bool isPlantMatch(
+    String expectedPlantId,
+    List<String> identifiedNames,
+  ) {
+    final aliases =
+        plantAliases[expectedPlantId.toLowerCase()] ??
+        [expectedPlantId.toLowerCase()];
+
     for (final identifiedName in identifiedNames) {
       final lowerName = identifiedName.toLowerCase();
       for (final alias in aliases) {

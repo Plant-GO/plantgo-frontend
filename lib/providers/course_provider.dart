@@ -46,7 +46,9 @@ class CourseProvider extends ChangeNotifier {
       return;
     }
 
-    debugPrint('🎯 CourseProvider: Completing level $levelId with $stars stars');
+    debugPrint(
+      '🎯 CourseProvider: Completing level $levelId with $stars stars',
+    );
 
     // Update completed level
     _levels[index] = _levels[index].copyWith(
@@ -90,14 +92,20 @@ class CourseProvider extends ChangeNotifier {
         return;
       }
 
-      debugPrint('📦 loadUserProgress: User completedLevelIds: ${user.completedLevelIds}');
+      debugPrint(
+        '📦 loadUserProgress: User completedLevelIds: ${user.completedLevelIds}',
+      );
 
       // Update level statuses based on completed levels
       for (int i = 0; i < _levels.length; i++) {
         final level = _levels[i];
-        final isCompleted = user.completedLevelIds.contains(level.id.toString());
+        final isCompleted = user.completedLevelIds.contains(
+          level.id.toString(),
+        );
 
-        debugPrint('🔍 Level ${level.id}: isCompleted=$isCompleted (checking "${level.id}" in ${user.completedLevelIds})');
+        debugPrint(
+          '🔍 Level ${level.id}: isCompleted=$isCompleted (checking "${level.id}" in ${user.completedLevelIds})',
+        );
 
         if (isCompleted) {
           debugPrint('✅ loadUserProgress: Level ${level.id} is completed');
@@ -112,24 +120,25 @@ class CourseProvider extends ChangeNotifier {
             _levels[i + 1] = _levels[i + 1].copyWith(
               status: LevelStatus.active,
             );
-            debugPrint('🔓 loadUserProgress: Unlocked level ${_levels[i + 1].id}');
+            debugPrint(
+              '🔓 loadUserProgress: Unlocked level ${_levels[i + 1].id}',
+            );
           }
-        } else if (i == 0 || user.completedLevelIds.contains(_levels[i - 1].id.toString())) {
+        } else if (i == 0 ||
+            user.completedLevelIds.contains(_levels[i - 1].id.toString())) {
           // First level or previous level is completed -> make it active
           debugPrint('🟢 loadUserProgress: Level ${level.id} is active');
-          _levels[i] = level.copyWith(
-            status: LevelStatus.active,
-          );
+          _levels[i] = level.copyWith(status: LevelStatus.active);
         } else {
           // Level is locked
           debugPrint('🔒 loadUserProgress: Level ${level.id} is locked');
-          _levels[i] = level.copyWith(
-            status: LevelStatus.locked,
-          );
+          _levels[i] = level.copyWith(status: LevelStatus.locked);
         }
       }
-      
-      debugPrint('📊 loadUserProgress: Final state: ${_levels.map((l) => "${l.id}:${l.status}").join(", ")}');
+
+      debugPrint(
+        '📊 loadUserProgress: Final state: ${_levels.map((l) => "${l.id}:${l.status}").join(", ")}',
+      );
     } catch (e) {
       debugPrint('❌ Error loading user progress: $e');
     }

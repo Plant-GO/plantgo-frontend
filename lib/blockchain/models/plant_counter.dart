@@ -1,32 +1,32 @@
 /// Tracks mint counts for a specific plant species.
-/// 
+///
 /// This model matches the PlantCounter PDA data stored on-chain.
 /// Used to determine rarity distribution for new mints.
 class PlantCounter {
   /// Name of the plant this counter tracks
   final String plantName;
-  
+
   /// Count of AuroraSeed cards minted (new species discovery)
   final int seedCount;
-  
+
   /// Count of PrimordialRelic cards minted (first discovery)
   final int relicCount;
-  
+
   /// Count of MythicCrest cards minted (Epic, max 20)
   final int epicCount;
-  
+
   /// Count of AstralShard cards minted (Rare, max 50)
   final int rareCount;
-  
+
   /// Count of GenesisFragment cards minted (Common, unlimited)
   final int commonCount;
-  
+
   /// Count of AscendantSeal cards minted (Quiz Winner)
   final int masteryCount;
-  
+
   /// Count of CodexOfInsight cards minted (Quiz Participation)
   final int codexCount;
-  
+
   /// Wallet address of the first person to mint this plant (if any)
   final String? firstMinter;
 
@@ -90,5 +90,6 @@ class PlantCounter {
   };
 
   @override
-  String toString() => 'PlantCounter(plantName: $plantName, total: $totalMinted)';
+  String toString() =>
+      'PlantCounter(plantName: $plantName, total: $totalMinted)';
 }

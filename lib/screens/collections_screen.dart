@@ -93,7 +93,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
               child: StreamBuilder<List<Treasure>>(
                 stream: _treasureService.getUserTreasuresStream(_userId!),
                 builder: (context, snapshot) {
-                  final treasureCount = snapshot.hasData ? snapshot.data!.length : 0;
+                  final treasureCount = snapshot.hasData
+                      ? snapshot.data!.length
+                      : 0;
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -144,13 +146,17 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                                     gradient: LinearGradient(
                                       colors: [
                                         AppColors.primary,
-                                        AppColors.primary.withValues(alpha: 0.8),
+                                        AppColors.primary.withValues(
+                                          alpha: 0.8,
+                                        ),
                                       ],
                                     ),
                                     borderRadius: BorderRadius.circular(20),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppColors.primary.withValues(alpha: 0.3),
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.3,
+                                        ),
                                         blurRadius: 8,
                                         offset: const Offset(0, 2),
                                       ),
@@ -202,19 +208,17 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  
+
                   if (snapshot.hasError) {
-                    return Center(
-                      child: Text('Error: ${snapshot.error}'),
-                    );
+                    return Center(child: Text('Error: ${snapshot.error}'));
                   }
-                  
+
                   final treasures = snapshot.data ?? [];
-                  
+
                   if (treasures.isEmpty) {
                     return _buildEmptyState();
                   }
-                  
+
                   return _buildCollectionGrid(treasures);
                 },
               ),
@@ -301,7 +305,11 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.account_balance_wallet, color: Colors.white, size: 16),
+              const Icon(
+                Icons.account_balance_wallet,
+                color: Colors.white,
+                size: 16,
+              ),
               const SizedBox(width: 6),
               Text(
                 walletProvider.displayAddress,
@@ -327,7 +335,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
 
           // Connect wallet
           final connected = await walletProvider.connect();
-          
+
           if (connected) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -354,10 +362,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Colors.purple.shade600,
-                Colors.purple.shade800,
-              ],
+              colors: [Colors.purple.shade600, Colors.purple.shade800],
             ),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
@@ -425,72 +430,87 @@ class _TreasureCard extends StatelessWidget {
         );
       },
       child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: treasure.imageBase64.isNotEmpty
-                  ? Image.memory(
-                      _decodeBase64(treasure.imageBase64),
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: AppColors.primaryLight.withValues(alpha: 0.2),
-                          child: const Icon(Icons.eco, size: 48, color: AppColors.primary),
-                        );
-                      },
-                    )
-                  : Container(
-                      color: AppColors.primaryLight.withValues(alpha: 0.2),
-                      child: const Icon(Icons.eco, size: 48, color: AppColors.primary),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+                child: treasure.imageBase64.isNotEmpty
+                    ? Image.memory(
+                        _decodeBase64(treasure.imageBase64),
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: AppColors.primaryLight.withValues(
+                              alpha: 0.2,
+                            ),
+                            child: const Icon(
+                              Icons.eco,
+                              size: 48,
+                              color: AppColors.primary,
+                            ),
+                          );
+                        },
+                      )
+                    : Container(
+                        color: AppColors.primaryLight.withValues(alpha: 0.2),
+                        child: const Icon(
+                          Icons.eco,
+                          size: 48,
+                          color: AppColors.primary,
+                        ),
+                      ),
+              ),
+            ),
+            // Info
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    treasure.commonName.isNotEmpty
+                        ? treasure.commonName
+                        : treasure.plantName,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
                     ),
-            ),
-          ),
-          // Info
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  treasure.commonName.isNotEmpty ? treasure.commonName : treasure.plantName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _formatDate(treasure.discoveredAt),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatDate(treasure.discoveredAt),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ));
+    );
   }
 
   dynamic _decodeBase64(String base64String) {
@@ -499,7 +519,9 @@ class _TreasureCard extends StatelessWidget {
     if (base64String.contains(',')) {
       cleanBase64 = base64String.split(',').last;
     }
-    return Uri.parse('data:image/jpeg;base64,$cleanBase64').data!.contentAsBytes();
+    return Uri.parse(
+      'data:image/jpeg;base64,$cleanBase64',
+    ).data!.contentAsBytes();
   }
 
   String _formatDate(DateTime date) {

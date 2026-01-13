@@ -5,7 +5,7 @@ import '../blockchain/blockchain.dart';
 import 'backend_url_provider.dart';
 
 /// Service for interacting with the PlantGO backend API for NFT operations.
-/// 
+///
 /// The backend handles:
 /// - Transaction signing with mintAuthority (kept secret)
 /// - Calling the Solana program
@@ -25,15 +25,15 @@ class NFTApiService {
   // ============ Mint NFT Endpoints ============
 
   /// Mint a Plant Discovery NFT
-  /// 
+  ///
   /// Called when user discovers a plant via the scanner.
   /// Backend determines the rarity based on on-chain data.
-  /// 
+  ///
   /// [walletAddress] - User's Solana wallet public key
   /// [plantName] - Name of the discovered plant
   /// [isNewSpecies] - Whether this is a completely new species discovery
   /// [imageUrl] - Optional URL to the plant image
-  /// 
+  ///
   /// Returns the minted NFTCard or throws an exception on failure.
   Future<MintResult> mintPlantDiscoveryNFT({
     required String walletAddress,
@@ -44,19 +44,21 @@ class NFTApiService {
   }) async {
     try {
       final backendUrl = await BackendUrlProvider.getBackendUrl();
-      final response = await _client.post(
-        Uri.parse('$backendUrl${SolanaConfig.mintEndpoint}'),
-        headers: _headers,
-        body: jsonEncode({
-          'wallet_address': walletAddress,
-          'plant_name': plantName,
-          'is_new_species': isNewSpecies,
-          'quiz_winner': null, // Not a quiz mint
-          'flow_type': 'plant_discovery',
-          'image_url': imageUrl,
-          'scientific_name': scientificName,
-        }),
-      ).timeout(_timeout);
+      final response = await _client
+          .post(
+            Uri.parse('$backendUrl${SolanaConfig.mintEndpoint}'),
+            headers: _headers,
+            body: jsonEncode({
+              'wallet_address': walletAddress,
+              'plant_name': plantName,
+              'is_new_species': isNewSpecies,
+              'quiz_winner': null, // Not a quiz mint
+              'flow_type': 'plant_discovery',
+              'image_url': imageUrl,
+              'scientific_name': scientificName,
+            }),
+          )
+          .timeout(_timeout);
 
       return _handleMintResponse(response);
     } catch (e) {
@@ -66,14 +68,14 @@ class NFTApiService {
   }
 
   /// Mint a Quiz NFT
-  /// 
+  ///
   /// Called when user participates in or wins a quiz.
   /// Backend determines whether to mint CodexOfInsight or AscendantSeal.
-  /// 
+  ///
   /// [walletAddress] - User's Solana wallet public key
   /// [plantName] - Name of the plant the quiz was about
   /// [isWinner] - Whether the user won the quiz
-  /// 
+  ///
   /// Returns the minted NFTCard or throws an exception on failure.
   Future<MintResult> mintQuizNFT({
     required String walletAddress,
@@ -82,17 +84,19 @@ class NFTApiService {
   }) async {
     try {
       final backendUrl = await BackendUrlProvider.getBackendUrl();
-      final response = await _client.post(
-        Uri.parse('$backendUrl${SolanaConfig.mintEndpoint}'),
-        headers: _headers,
-        body: jsonEncode({
-          'wallet_address': walletAddress,
-          'plant_name': plantName,
-          'is_new_species': null, // Not a plant discovery
-          'quiz_winner': isWinner,
-          'flow_type': 'quiz',
-        }),
-      ).timeout(_timeout);
+      final response = await _client
+          .post(
+            Uri.parse('$backendUrl${SolanaConfig.mintEndpoint}'),
+            headers: _headers,
+            body: jsonEncode({
+              'wallet_address': walletAddress,
+              'plant_name': plantName,
+              'is_new_species': null, // Not a plant discovery
+              'quiz_winner': isWinner,
+              'flow_type': 'quiz',
+            }),
+          )
+          .timeout(_timeout);
 
       return _handleMintResponse(response);
     } catch (e) {
@@ -104,19 +108,21 @@ class NFTApiService {
   // ============ Query Endpoints ============
 
   /// Get all NFTs owned by a user
-  /// 
+  ///
   /// [walletAddress] - User's Solana wallet public key
-  /// 
+  ///
   /// Returns a list of NFTCard objects owned by the user.
   Future<List<NFTCard>> getUserNFTs(String walletAddress) async {
     try {
       final backendUrl = await BackendUrlProvider.getBackendUrl();
-      final response = await _client.get(
-        Uri.parse(
-          '$backendUrl${SolanaConfig.userNftsEndpoint}/$walletAddress',
-        ),
-        headers: _headers,
-      ).timeout(_timeout);
+      final response = await _client
+          .get(
+            Uri.parse(
+              '$backendUrl${SolanaConfig.userNftsEndpoint}/$walletAddress',
+            ),
+            headers: _headers,
+          )
+          .timeout(_timeout);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -136,11 +142,11 @@ class NFTApiService {
   }
 
   /// Check if user already owns a specific plant card
-  /// 
+  ///
   /// [walletAddress] - User's Solana wallet public key
   /// [plantName] - Name of the plant to check
   /// [rarity] - Optional specific rarity to check
-  /// 
+  ///
   /// Returns true if the user already owns this card.
   Future<bool> checkOwnership({
     required String walletAddress,
@@ -159,16 +165,15 @@ class NFTApiService {
         '$backendUrl/api/nft/check-ownership',
       ).replace(queryParameters: queryParams);
 
-      final response = await _client.get(
-        uri,
-        headers: _headers,
-      ).timeout(_timeout);
+      final response = await _client
+          .get(uri, headers: _headers)
+          .timeout(_timeout);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data['owns'] == true;
       }
-      
+
       return false;
     } catch (e) {
       debugPrint('NFTApiService: Check ownership error: $e');
@@ -177,25 +182,25 @@ class NFTApiService {
   }
 
   /// Get plant counter data (mint statistics for a plant)
-  /// 
+  ///
   /// [plantName] - Name of the plant
-  /// 
+  ///
   /// Returns PlantCounter with mint counts.
   Future<PlantCounter?> getPlantCounter(String plantName) async {
     try {
       final backendUrl = await BackendUrlProvider.getBackendUrl();
-      final response = await _client.get(
-        Uri.parse(
-          '$backendUrl/api/plant-counter/$plantName',
-        ),
-        headers: _headers,
-      ).timeout(_timeout);
+      final response = await _client
+          .get(
+            Uri.parse('$backendUrl/api/plant-counter/$plantName'),
+            headers: _headers,
+          )
+          .timeout(_timeout);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return PlantCounter.fromJson(data);
       }
-      
+
       return null;
     } catch (e) {
       debugPrint('NFTApiService: Get plant counter error: $e');
@@ -221,7 +226,8 @@ class NFTApiService {
       return MintResult(
         success: true,
         nftCard: NFTCard.fromJson(data['nft'] ?? data),
-        transactionSignature: data['signature'] ?? data['transaction_signature'],
+        transactionSignature:
+            data['signature'] ?? data['transaction_signature'],
         message: data['message'] ?? 'NFT minted successfully!',
       );
     } else if (response.statusCode == 409) {
@@ -278,5 +284,6 @@ class NFTApiException implements Exception {
   NFTApiException(this.message, {this.statusCode, this.errorCode});
 
   @override
-  String toString() => 'NFTApiException: $message (status: $statusCode, code: $errorCode)';
+  String toString() =>
+      'NFTApiException: $message (status: $statusCode, code: $errorCode)';
 }

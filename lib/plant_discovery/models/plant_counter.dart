@@ -6,11 +6,11 @@ class PlantCounter {
   final String plantName;
   final String normalizedName;
   final int totalMinted;
-  final int seedCount;      // AuroraSeed (new species) - max 1
-  final int relicCount;     // PrimordialRelic (first discovery) - max 1
-  final int epicCount;      // MythicCrest - max 20
-  final int rareCount;      // AstralShard - max 30 (21-50)
-  final int commonCount;    // GenesisFragment - unlimited (51+)
+  final int seedCount; // AuroraSeed (new species) - max 1
+  final int relicCount; // PrimordialRelic (first discovery) - max 1
+  final int epicCount; // MythicCrest - max 20
+  final int rareCount; // AstralShard - max 30 (21-50)
+  final int commonCount; // GenesisFragment - unlimited (51+)
   final String? firstDiscoveredBy;
   final DateTime? firstDiscoveredAt;
   final DateTime createdAt;
@@ -35,9 +35,9 @@ class PlantCounter {
     this.firstDiscoveredAt,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : normalizedName = normalizedName ?? _normalize(plantName),
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : normalizedName = normalizedName ?? _normalize(plantName),
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   /// Normalize plant name for consistent lookups
   static String _normalize(String name) {
@@ -86,10 +86,14 @@ class PlantCounter {
       normalizedName: normalizedName,
       totalMinted: totalMinted + 1,
       seedCount: rarity == NFTRarity.auroraSeed ? seedCount + 1 : seedCount,
-      relicCount: rarity == NFTRarity.primordialRelic ? relicCount + 1 : relicCount,
+      relicCount: rarity == NFTRarity.primordialRelic
+          ? relicCount + 1
+          : relicCount,
       epicCount: rarity == NFTRarity.mythicCrest ? epicCount + 1 : epicCount,
       rareCount: rarity == NFTRarity.astralShard ? rareCount + 1 : rareCount,
-      commonCount: rarity == NFTRarity.genesisFragment ? commonCount + 1 : commonCount,
+      commonCount: rarity == NFTRarity.genesisFragment
+          ? commonCount + 1
+          : commonCount,
       firstDiscoveredBy: firstDiscoveredBy ?? discoveredBy,
       firstDiscoveredAt: firstDiscoveredAt ?? DateTime.now(),
       createdAt: createdAt,
@@ -109,8 +113,8 @@ class PlantCounter {
       'rareCount': rareCount,
       'commonCount': commonCount,
       'firstDiscoveredBy': firstDiscoveredBy,
-      'firstDiscoveredAt': firstDiscoveredAt != null 
-          ? Timestamp.fromDate(firstDiscoveredAt!) 
+      'firstDiscoveredAt': firstDiscoveredAt != null
+          ? Timestamp.fromDate(firstDiscoveredAt!)
           : null,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
@@ -144,10 +148,10 @@ class PlantCounter {
 
 /// NFT Rarity levels matching Solana program
 enum NFTRarity {
-  auroraSeed,      // Legendary - New species discovery
+  auroraSeed, // Legendary - New species discovery
   primordialRelic, // Legendary - First discovery of known plant
-  mythicCrest,     // Epic - First 20 discoveries
-  astralShard,     // Rare - Discoveries 21-50
+  mythicCrest, // Epic - First 20 discoveries
+  astralShard, // Rare - Discoveries 21-50
   genesisFragment, // Common - Discoveries 51+
 }
 

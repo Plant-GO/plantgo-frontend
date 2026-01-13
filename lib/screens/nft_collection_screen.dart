@@ -4,6 +4,7 @@ import '../blockchain/blockchain.dart';
 import '../core/theme/app_colors.dart';
 import '../providers/wallet_provider.dart';
 import '../providers/nft_provider.dart';
+import '../providers/user_provider.dart';
 import '../widgets/nft_card_widget.dart';
 import '../widgets/wallet_connect_button.dart';
 
@@ -31,7 +32,10 @@ class _NFTCollectionScreenState extends State<NFTCollectionScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: _filterTabs.length, vsync: this);
-    _loadNFTs();
+    // Use addPostFrameCallback to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadNFTs();
+    });
   }
 
   @override
@@ -42,8 +46,25 @@ class _NFTCollectionScreenState extends State<NFTCollectionScreen>
 
   void _loadNFTs() {
     final wallet = context.read<WalletProvider>();
+    final userProvider = context.read<UserProvider>();
+
+    // Use Phantom wallet if connected, otherwise use device wallet
+    String? walletAddress;
     if (wallet.isConnected && wallet.walletAddress != null) {
-      context.read<NFTProvider>().loadNFTs(wallet.walletAddress!);
+      walletAddress = wallet.walletAddress!;
+      debugPrint('🔑 NFT Collection: Using Phantom wallet: $walletAddress');
+    } else if (userProvider.deviceId.isNotEmpty) {
+      walletAddress = 'device_${userProvider.deviceId}';
+      debugPrint('🔑 NFT Collection: Using device wallet: $walletAddress');
+    } else {
+      debugPrint(
+        '⚠️ NFT Collection: No wallet available (deviceId: "${userProvider.deviceId}")',
+      );
+    }
+
+    if (walletAddress != null) {
+      debugPrint('📦 NFT Collection: Loading NFTs for $walletAddress');
+      context.read<NFTProvider>().loadNFTs(walletAddress);
     }
   }
 
@@ -52,9 +73,12 @@ class _NFTCollectionScreenState extends State<NFTCollectionScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: _buildAppBar(),
-      body: Consumer<WalletProvider>(
-        builder: (context, wallet, child) {
-          if (!wallet.isConnected) {
+      body: Consumer2<WalletProvider, UserProvider>(
+        builder: (context, wallet, userProvider, child) {
+          // Show NFT content if either Phantom is connected OR we have device ID
+          final hasWallet =
+              wallet.isConnected || userProvider.deviceId.isNotEmpty;
+          if (!hasWallet) {
             return _buildConnectWalletPrompt();
           }
           return _buildNFTContent();
@@ -124,9 +148,9 @@ class _NFTCollectionScreenState extends State<NFTCollectionScreen>
                 color: Colors.white,
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             const Text(
               'Connect Your Wallet',
               style: TextStyle(
@@ -135,27 +159,21 @@ class _NFTCollectionScreenState extends State<NFTCollectionScreen>
                 color: AppColors.textPrimary,
               ),
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             Text(
               'Connect your Phantom wallet to view and mint your Plant NFT collection',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
-            
+
             const SizedBox(height: 32),
-            
-            WalletConnectButton(
-              expanded: true,
-              onConnected: _loadNFTs,
-            ),
-            
+
+            WalletConnectButton(expanded: true, onConnected: _loadNFTs),
+
             const SizedBox(height: 16),
-            
+
             TextButton.icon(
               onPressed: () {
                 // Show info about NFTs
@@ -180,11 +198,11 @@ class _NFTCollectionScreenState extends State<NFTCollectionScreen>
           controller: _tabController,
           children: _filterTabs.map((tab) {
             final filteredNFTs = _getFilteredNFTs(nftProvider.nfts, tab);
-            
+
             if (filteredNFTs.isEmpty) {
               return _buildEmptyState(tab);
             }
-            
+
             return _buildNFTGrid(filteredNFTs);
           }).toList(),
         );
@@ -203,7 +221,9 @@ class _NFTCollectionScreenState extends State<NFTCollectionScreen>
       case 'Rare':
         return nfts.where((n) => n.rarity == CardRarity.astralShard).toList();
       case 'Common':
-        return nfts.where((n) => n.rarity == CardRarity.genesisFragment).toList();
+        return nfts
+            .where((n) => n.rarity == CardRarity.genesisFragment)
+            .toList();
       case 'Quiz':
         return nfts.where((n) => n.rarity.isQuizCard).toList();
       default:
@@ -252,7 +272,7 @@ class _NFTCollectionScreenState extends State<NFTCollectionScreen>
   Widget _buildEmptyState(String filter) {
     String message;
     IconData icon;
-    
+
     if (filter == 'All') {
       message = 'Start discovering plants to earn your first NFT card!';
       icon = Icons.explore;
@@ -274,20 +294,13 @@ class _NFTCollectionScreenState extends State<NFTCollectionScreen>
                 color: AppColors.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                size: 40,
-                color: AppColors.primary,
-              ),
+              child: Icon(icon, size: 40, color: AppColors.primary),
             ),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -334,7 +347,7 @@ class _NFTDetailSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          
+
           // Card preview
           Expanded(
             child: Padding(
@@ -382,9 +395,9 @@ class _NFTDetailSheet extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 24),
-                            
+
                             // Plant icon/image
                             Container(
                               width: 120,
@@ -399,9 +412,9 @@ class _NFTDetailSheet extends StatelessWidget {
                                 size: 60,
                               ),
                             ),
-                            
+
                             const SizedBox(height: 24),
-                            
+
                             // Plant name
                             Text(
                               nft.plantName,
@@ -411,7 +424,7 @@ class _NFTDetailSheet extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            
+
                             if (nft.scientificName != null) ...[
                               const SizedBox(height: 4),
                               Text(
@@ -423,9 +436,9 @@ class _NFTDetailSheet extends StatelessWidget {
                                 ),
                               ),
                             ],
-                            
+
                             const SizedBox(height: 16),
-                            
+
                             // Card type
                             Text(
                               nft.rarity.displayName,
@@ -439,9 +452,9 @@ class _NFTDetailSheet extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Info row
                   Row(
                     children: [
@@ -466,9 +479,9 @@ class _NFTDetailSheet extends StatelessWidget {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Action buttons
                   Row(
                     children: [
@@ -547,10 +560,7 @@ class _InfoTile extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[500],
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                 ),
                 Text(
                   value,

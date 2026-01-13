@@ -12,7 +12,7 @@ import '../services/plant_id_service.dart';
 /// Map Exploration Screen - Shows user's discovered treasures on map
 class MapExplorationScreen extends StatefulWidget {
   final String? highlightTreasureId;
-  
+
   const MapExplorationScreen({super.key, this.highlightTreasureId});
 
   @override
@@ -39,12 +39,12 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
           (t) => t.id == widget.highlightTreasureId,
           orElse: () => _treasures.first,
         );
-        
+
         if (mounted) {
           setState(() {
             _selectedTreasure = treasure;
           });
-          
+
           // Zoom to the treasure location
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted) {
@@ -83,12 +83,14 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
       final treasureService = TreasureService();
       // Load ALL treasures from all users
       final treasures = await treasureService.getAllTreasures();
-      
+
       debugPrint('📍 Loaded ${treasures.length} treasures from Firebase');
       for (var treasure in treasures) {
-        debugPrint('  - ${treasure.commonName} at (${treasure.latitude}, ${treasure.longitude}) by ${treasure.userName}');
+        debugPrint(
+          '  - ${treasure.commonName} at (${treasure.latitude}, ${treasure.longitude}) by ${treasure.userName}',
+        );
       }
-      
+
       if (mounted) {
         setState(() {
           _treasures = treasures;
@@ -169,9 +171,11 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
               bottom: 0,
               child: _buildTreasureCard(_selectedTreasure!),
             ),
-            
+
           // Empty state message
-          if (!_isLoadingTreasures && _treasures.isEmpty && _hasInitializedPosition)
+          if (!_isLoadingTreasures &&
+              _treasures.isEmpty &&
+              _hasInitializedPosition)
             Positioned(
               left: 24,
               right: 24,
@@ -190,10 +194,7 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20),
         ],
       ),
       child: Column(
@@ -213,10 +214,7 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
           Text(
             'Complete riddles in Course Mode to discover plants and add them to your treasure map!',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -279,7 +277,7 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           Row(
             children: [
               // Plant image
@@ -288,7 +286,10 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
                 child: treasure.imageBase64.isNotEmpty
                     ? Image.memory(
                         const Base64Decoder().convert(
-                          treasure.imageBase64.replaceAll(RegExp(r'^data:image\/[a-zA-Z]+;base64,'), '')
+                          treasure.imageBase64.replaceAll(
+                            RegExp(r'^data:image\/[a-zA-Z]+;base64,'),
+                            '',
+                          ),
                         ),
                         width: 80,
                         height: 80,
@@ -297,18 +298,26 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
                           width: 80,
                           height: 80,
                           color: AppColors.primaryLight.withValues(alpha: 0.3),
-                          child: Icon(Icons.eco_rounded, color: AppColors.primary, size: 40),
+                          child: Icon(
+                            Icons.eco_rounded,
+                            color: AppColors.primary,
+                            size: 40,
+                          ),
                         ),
                       )
                     : Container(
                         width: 80,
                         height: 80,
                         color: AppColors.primaryLight.withValues(alpha: 0.3),
-                        child: Icon(Icons.eco_rounded, color: AppColors.primary, size: 40),
+                        child: Icon(
+                          Icons.eco_rounded,
+                          color: AppColors.primary,
+                          size: 40,
+                        ),
                       ),
               ),
               const SizedBox(width: 16),
-              
+
               // Plant info
               Expanded(
                 child: Column(
@@ -341,10 +350,13 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
                   ],
                 ),
               ),
-              
+
               // Level badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -360,9 +372,9 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Action buttons
           Row(
             children: [
@@ -409,7 +421,7 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final diff = now.difference(date);
-    
+
     if (diff.inDays == 0) {
       return 'Today';
     } else if (diff.inDays == 1) {
@@ -521,27 +533,29 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
 
             // Treasure markers from Firebase (non-matches first)
             ..._treasures
-                .where((treasure) => !_matchingTreasureIds.contains(treasure.id))
+                .where(
+                  (treasure) => !_matchingTreasureIds.contains(treasure.id),
+                )
                 .map(
-              (treasure) => Marker(
-                point: LatLng(treasure.latitude, treasure.longitude),
-                width: 60,
-                height: 70,
-                child: _buildTreasureMarker(treasure),
-              ),
-            ),
-            
+                  (treasure) => Marker(
+                    point: LatLng(treasure.latitude, treasure.longitude),
+                    width: 60,
+                    height: 70,
+                    child: _buildTreasureMarker(treasure),
+                  ),
+                ),
+
             // Search match markers on top (rendered last)
             ..._treasures
                 .where((treasure) => _matchingTreasureIds.contains(treasure.id))
                 .map(
-              (treasure) => Marker(
-                point: LatLng(treasure.latitude, treasure.longitude),
-                width: 60,
-                height: 70,
-                child: _buildTreasureMarker(treasure),
-              ),
-            ),
+                  (treasure) => Marker(
+                    point: LatLng(treasure.latitude, treasure.longitude),
+                    width: 60,
+                    height: 70,
+                    child: _buildTreasureMarker(treasure),
+                  ),
+                ),
           ],
         ),
       ],
@@ -552,7 +566,7 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
     final isSelected = _selectedTreasure?.id == treasure.id;
     final isSearchMatch = _matchingTreasureIds.contains(treasure.id);
     final markerColor = isSearchMatch ? Colors.red : AppColors.primary;
-    
+
     return GestureDetector(
       onTap: () => setState(() => _selectedTreasure = treasure),
       child: Column(
@@ -563,12 +577,11 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
             width: isSelected ? 50 : 44,
             height: isSelected ? 50 : 44,
             decoration: BoxDecoration(
-              color: isSearchMatch ? Colors.red : (isSelected ? markerColor : Colors.white),
+              color: isSearchMatch
+                  ? Colors.red
+                  : (isSelected ? markerColor : Colors.white),
               shape: BoxShape.circle,
-              border: Border.all(
-                color: markerColor,
-                width: isSelected ? 3 : 2,
-              ),
+              border: Border.all(color: markerColor, width: isSelected ? 3 : 2),
               boxShadow: [
                 BoxShadow(
                   color: markerColor.withOpacity(isSelected ? 0.4 : 0.2),
@@ -588,7 +601,9 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
           CustomPaint(
             size: const Size(12, 8),
             painter: _MarkerPointerPainter(
-              color: isSearchMatch ? Colors.red : (isSelected ? markerColor : Colors.white),
+              color: isSearchMatch
+                  ? Colors.red
+                  : (isSelected ? markerColor : Colors.white),
               borderColor: markerColor,
             ),
           ),
@@ -615,6 +630,87 @@ class _MapExplorationScreenState extends State<MapExplorationScreen> {
         },
       ),
     );
+  }
+
+  void _showSearchDialog() {
+    final TextEditingController searchController = TextEditingController(
+      text: _searchQuery,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Search Plants'),
+        content: TextField(
+          controller: searchController,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Enter plant name',
+            prefixIcon: Icon(Icons.search),
+            border: OutlineInputBorder(),
+          ),
+          onSubmitted: (value) {
+            Navigator.pop(context);
+            _performSearch(value);
+          },
+        ),
+        actions: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _performSearch(searchController.text);
+                },
+                child: const Text('Search'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _performSearch(String query) {
+    if (query.isEmpty) {
+      _clearSearch();
+      return;
+    }
+
+    setState(() {
+      _searchQuery = query;
+      final regex = RegExp(query, caseSensitive: false);
+      _matchingTreasureIds = _treasures
+          .where(
+            (treasure) =>
+                regex.hasMatch(treasure.commonName) ||
+                regex.hasMatch(treasure.plantName),
+          )
+          .map((treasure) => treasure.id)
+          .toList();
+
+      debugPrint(
+        '🔍 Search for "$query" found ${_matchingTreasureIds.length} matches',
+      );
+      for (var id in _matchingTreasureIds) {
+        final treasure = _treasures.firstWhere((t) => t.id == id);
+        debugPrint(
+          '  ✅ ${treasure.commonName} at (${treasure.latitude}, ${treasure.longitude})',
+        );
+      }
+    });
+  }
+
+  void _clearSearch() {
+    setState(() {
+      _searchQuery = '';
+      _matchingTreasureIds = [];
+    });
   }
 }
 
@@ -653,8 +749,10 @@ class _MarkerPointerPainter extends CustomPainter {
 // Add search dialog method in _MapExplorationScreenState class
 extension SearchFunctionality on _MapExplorationScreenState {
   void _showSearchDialog() {
-    final TextEditingController searchController = TextEditingController(text: _searchQuery);
-    
+    final TextEditingController searchController = TextEditingController(
+      text: _searchQuery,
+    );
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -676,7 +774,6 @@ extension SearchFunctionality on _MapExplorationScreenState {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Cancel'),
@@ -706,17 +803,23 @@ extension SearchFunctionality on _MapExplorationScreenState {
       // Use regex to match plant names (case insensitive)
       final regex = RegExp(query, caseSensitive: false);
       _matchingTreasureIds = _treasures
-          .where((treasure) => 
-              regex.hasMatch(treasure.commonName) || 
-              regex.hasMatch(treasure.plantName))
+          .where(
+            (treasure) =>
+                regex.hasMatch(treasure.commonName) ||
+                regex.hasMatch(treasure.plantName),
+          )
           .map((treasure) => treasure.id)
           .toList();
-      
+
       // Debug: Print matching treasures
-      debugPrint('🔍 Search for "$query" found ${_matchingTreasureIds.length} matches');
+      debugPrint(
+        '🔍 Search for "$query" found ${_matchingTreasureIds.length} matches',
+      );
       for (var id in _matchingTreasureIds) {
         final treasure = _treasures.firstWhere((t) => t.id == id);
-        debugPrint('  ✅ ${treasure.commonName} at (${treasure.latitude}, ${treasure.longitude})');
+        debugPrint(
+          '  ✅ ${treasure.commonName} at (${treasure.latitude}, ${treasure.longitude})',
+        );
       }
     });
   }
@@ -751,7 +854,8 @@ class _PlantDetailPageState extends State<PlantDetailPage> {
 
   Future<void> _fetchPlantDescription() async {
     // If description already exists in treasure, use it
-    if (widget.treasure.description != null && widget.treasure.description!.isNotEmpty) {
+    if (widget.treasure.description != null &&
+        widget.treasure.description!.isNotEmpty) {
       setState(() {
         _plantDescription = widget.treasure.description;
         _isLoadingDescription = false;
@@ -763,16 +867,19 @@ class _PlantDetailPageState extends State<PlantDetailPage> {
     try {
       final plantIdService = PlantIdService();
       // Remove data URI prefix if present
-      final imageData = widget.treasure.imageBase64
-          .replaceAll(RegExp(r'^data:image\/[a-zA-Z]+;base64,'), '');
-      
+      final imageData = widget.treasure.imageBase64.replaceAll(
+        RegExp(r'^data:image\/[a-zA-Z]+;base64,'),
+        '',
+      );
+
       final result = await plantIdService.identifyPlant(imageData);
-      
+
       if (result.suggestions.isNotEmpty) {
         final topSuggestion = result.suggestions.first;
         if (mounted) {
           setState(() {
-            _plantDescription = topSuggestion.description ?? 
+            _plantDescription =
+                topSuggestion.description ??
                 'No detailed description available for this plant.';
             _isLoadingDescription = false;
           });
@@ -780,7 +887,8 @@ class _PlantDetailPageState extends State<PlantDetailPage> {
       } else {
         if (mounted) {
           setState(() {
-            _plantDescription = 'No detailed description available for this plant.';
+            _plantDescription =
+                'No detailed description available for this plant.';
             _isLoadingDescription = false;
           });
         }
@@ -811,17 +919,28 @@ class _PlantDetailPageState extends State<PlantDetailPage> {
               background: widget.treasure.imageBase64.isNotEmpty
                   ? Image.memory(
                       const Base64Decoder().convert(
-                        widget.treasure.imageBase64.replaceAll(RegExp(r'^data:image\/[a-zA-Z]+;base64,'), '')
+                        widget.treasure.imageBase64.replaceAll(
+                          RegExp(r'^data:image\/[a-zA-Z]+;base64,'),
+                          '',
+                        ),
                       ),
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
                         color: AppColors.primaryLight,
-                        child: const Icon(Icons.eco_rounded, size: 80, color: Colors.white),
+                        child: const Icon(
+                          Icons.eco_rounded,
+                          size: 80,
+                          color: Colors.white,
+                        ),
                       ),
                     )
                   : Container(
                       color: AppColors.primaryLight,
-                      child: const Icon(Icons.eco_rounded, size: 80, color: Colors.white),
+                      child: const Icon(
+                        Icons.eco_rounded,
+                        size: 80,
+                        color: Colors.white,
+                      ),
                     ),
             ),
           ),
@@ -858,7 +977,11 @@ class _PlantDetailPageState extends State<PlantDetailPage> {
                                 color: AppColors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(Icons.eco_rounded, color: AppColors.primary, size: 32),
+                              child: const Icon(
+                                Icons.eco_rounded,
+                                color: AppColors.primary,
+                                size: 32,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -911,7 +1034,7 @@ class _PlantDetailPageState extends State<PlantDetailPage> {
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 20),
 
                   // Discovery info section
@@ -940,15 +1063,35 @@ class _PlantDetailPageState extends State<PlantDetailPage> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        _buildInfoRow(Icons.person, 'Discovered by', widget.treasure.userName),
+                        _buildInfoRow(
+                          Icons.person,
+                          'Discovered by',
+                          widget.treasure.userName,
+                        ),
                         const SizedBox(height: 12),
-                        _buildInfoRow(Icons.calendar_today, 'Discovery date', _formatDate(widget.treasure.discoveredAt)),
+                        _buildInfoRow(
+                          Icons.calendar_today,
+                          'Discovery date',
+                          _formatDate(widget.treasure.discoveredAt),
+                        ),
                         const SizedBox(height: 12),
-                        _buildInfoRow(Icons.location_on, 'Location', '${widget.treasure.latitude.toStringAsFixed(4)}, ${widget.treasure.longitude.toStringAsFixed(4)}'),
+                        _buildInfoRow(
+                          Icons.location_on,
+                          'Location',
+                          '${widget.treasure.latitude.toStringAsFixed(4)}, ${widget.treasure.longitude.toStringAsFixed(4)}',
+                        ),
                         const SizedBox(height: 12),
-                        _buildInfoRow(Icons.layers, 'Level', 'Level ${widget.treasure.levelId}'),
+                        _buildInfoRow(
+                          Icons.layers,
+                          'Level',
+                          'Level ${widget.treasure.levelId}',
+                        ),
                         const SizedBox(height: 12),
-                        _buildInfoRow(Icons.verified, 'Confidence', '${(widget.treasure.confidence * 100).toStringAsFixed(0)}%'),
+                        _buildInfoRow(
+                          Icons.verified,
+                          'Confidence',
+                          '${(widget.treasure.confidence * 100).toStringAsFixed(0)}%',
+                        ),
                       ],
                     ),
                   ),
@@ -977,7 +1120,11 @@ class _PlantDetailPageState extends State<PlantDetailPage> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.info_outline, color: AppColors.primary, size: 24),
+                            Icon(
+                              Icons.info_outline,
+                              color: AppColors.primary,
+                              size: 24,
+                            ),
                             const SizedBox(width: 12),
                             const Text(
                               'About This Plant',
@@ -998,7 +1145,8 @@ class _PlantDetailPageState extends State<PlantDetailPage> {
                                 ),
                               )
                             : Text(
-                                _plantDescription ?? 'No description available for this plant.',
+                                _plantDescription ??
+                                    'No description available for this plant.',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: AppColors.textPrimary,

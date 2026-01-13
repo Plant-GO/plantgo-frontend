@@ -10,6 +10,10 @@ class AppConstants {
   static const String plantIdBaseUrl = 'https://api.plant.id/v3';
   static const String plantIdIdentifyEndpoint = '/identification';
 
+  // Custom Model Backend (Backend_CV)
+  static const String customModelBaseUrl = 'http://10.0.2.2:8000'; // localhost for Android emulator
+  static const String customModelEndpoint = '/predict-plant-base64';
+
   // Map Configuration (OSM)
   static const double defaultMapZoom = 15.0;
   static const double maxMapZoom = 18.0;

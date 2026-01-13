@@ -1,30 +1,30 @@
 import '../card_rarity.dart';
 
 /// Represents an on-chain NFT card owned by a user.
-/// 
+///
 /// This model matches the OwnershipRecord stored in the Solana program.
 class NFTCard {
   /// Owner's wallet public key (base58 encoded)
   final String ownerWallet;
-  
+
   /// Name of the plant this NFT represents
   final String plantName;
-  
+
   /// Rarity/type of the card
   final CardRarity rarity;
-  
+
   /// Mint public key of the NFT (base58 encoded)
   final String nftMint;
-  
+
   /// URL to the plant image
   final String? imageUrl;
-  
+
   /// When the NFT was minted
   final DateTime? mintedAt;
-  
+
   /// Transaction signature of the mint
   final String? transactionSignature;
-  
+
   /// Scientific name of the plant (optional)
   final String? scientificName;
 
@@ -52,11 +52,12 @@ class NFTCard {
       mintedAt: json['minted_at'] != null
           ? DateTime.tryParse(json['minted_at'].toString())
           : json['mintedAt'] != null
-              ? DateTime.tryParse(json['mintedAt'].toString())
-              : null,
-      transactionSignature: json['transaction_signature'] ?? 
-                           json['transactionSignature'] ??
-                           json['signature'],
+          ? DateTime.tryParse(json['mintedAt'].toString())
+          : null,
+      transactionSignature:
+          json['transaction_signature'] ??
+          json['transactionSignature'] ??
+          json['signature'],
       scientificName: json['scientific_name'] ?? json['scientificName'],
     );
   }
@@ -97,7 +98,8 @@ class NFTCard {
   }
 
   @override
-  String toString() => 'NFTCard(plantName: $plantName, rarity: ${rarity.displayName})';
+  String toString() =>
+      'NFTCard(plantName: $plantName, rarity: ${rarity.displayName})';
 
   @override
   bool operator ==(Object other) =>

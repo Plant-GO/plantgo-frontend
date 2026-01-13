@@ -7,12 +7,12 @@ import '../blockchain/blockchain.dart';
 import 'backend_url_provider.dart';
 
 /// NFT Minting Service
-/// 
+///
 /// This service handles:
 /// 1. Local Firestore storage for NFT records (always)
 /// 2. Real on-chain minting via backend server (when available)
 /// 3. Fallback to simulated minting if backend unavailable
-/// 
+///
 /// Flow:
 /// 1. Determine rarity based on plant discovery order
 /// 2. Call backend to mint real NFT on Solana
@@ -25,7 +25,7 @@ class NFTMintingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final http.Client _httpClient = http.Client();
   final _uuid = const Uuid();
-  
+
   /// Whether to use real blockchain minting (true) or Firestore-only (false)
   static bool useRealBlockchain = true;
 
@@ -35,15 +35,17 @@ class NFTMintingService {
   static const String _mintHistoryCollection = 'mint_history';
 
   // Rarity limits matching the Solana program
-  static const int epicLimit = 20;    // MythicCrest max per plant
-  static const int rareLimit = 50;    // AstralShard max per plant
+  static const int epicLimit = 20; // MythicCrest max per plant
+  static const int rareLimit = 50; // AstralShard max per plant
 
   // ============ PlantCounter Operations ============
 
   /// Get or create PlantCounter for a plant
   Future<PlantCounter> getOrCreatePlantCounter(String plantName) async {
     final normalized = _normalizePlantName(plantName);
-    final docRef = _firestore.collection(_plantCountersCollection).doc(normalized);
+    final docRef = _firestore
+        .collection(_plantCountersCollection)
+        .doc(normalized);
 
     return await _firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(docRef);
@@ -84,7 +86,7 @@ class NFTMintingService {
   // ============ NFT Minting ============
 
   /// Mint a Plant Discovery NFT
-  /// 
+  ///
   /// This implements the same logic as the Solana program:
   /// - New species → AuroraSeed (legendary)
   /// - First discovery → PrimordialRelic (legendary)
@@ -103,14 +105,17 @@ class NFTMintingService {
     double? longitude,
   }) async {
     try {
-      debugPrint('🎴 Starting mint for $plantName (isNewSpecies: $isNewSpecies)');
+      debugPrint(
+        '🎴 Starting mint for $plantName (isNewSpecies: $isNewSpecies)',
+      );
+      debugPrint('🎴 Wallet address for mint: $walletAddress');
 
       // Get or create plant counter
       final counter = await getOrCreatePlantCounter(plantName);
-      
+
       // Determine card rarity based on Solana program logic
       CardRarity rarity;
-      
+
       if (isNewSpecies && counter.seedCount == 0) {
         // New species - Aurora Seed (only first person gets this)
         rarity = CardRarity.auroraSeed;
@@ -122,11 +127,15 @@ class NFTMintingService {
       } else if (counter.hasEpicAvailable) {
         // Epic still available
         rarity = CardRarity.mythicCrest;
-        debugPrint('💜 Minting MYTHIC CREST (epic: ${counter.epicCount + 1}/$epicLimit)');
+        debugPrint(
+          '💜 Minting MYTHIC CREST (epic: ${counter.epicCount + 1}/$epicLimit)',
+        );
       } else if (counter.hasRareAvailable) {
         // Rare still available
         rarity = CardRarity.astralShard;
-        debugPrint('💙 Minting ASTRAL SHARD (rare: ${counter.rareCount + 1}/$rareLimit)');
+        debugPrint(
+          '💙 Minting ASTRAL SHARD (rare: ${counter.rareCount + 1}/$rareLimit)',
+        );
       } else {
         // Default to common
         rarity = CardRarity.genesisFragment;
@@ -136,7 +145,7 @@ class NFTMintingService {
       String nftMint;
       String transactionSignature;
       String? explorerUrl;
-      
+
       // Try real blockchain minting first
       if (useRealBlockchain) {
         final backendResult = await _mintViaBackend(
@@ -150,9 +159,10 @@ class NFTMintingService {
           latitude: latitude,
           longitude: longitude,
         );
-        
+
         if (backendResult != null && backendResult['success'] == true) {
-          nftMint = backendResult['nftMint'] ?? 'nft_${_uuid.v4().substring(0, 8)}';
+          nftMint =
+              backendResult['nftMint'] ?? 'nft_${_uuid.v4().substring(0, 8)}';
           transactionSignature = backendResult['signature'] ?? '';
           explorerUrl = backendResult['explorerUrl'];
           debugPrint('✅ Real NFT minted on Solana: $nftMint');
@@ -167,7 +177,7 @@ class NFTMintingService {
         nftMint = 'sim_${_uuid.v4().substring(0, 8)}';
         transactionSignature = 'sim_${_uuid.v4().substring(0, 16)}';
       }
-      
+
       // Create NFT card record
       final nftCard = NFTCard(
         ownerWallet: walletAddress,
@@ -201,13 +211,10 @@ class NFTMintingService {
       );
     } catch (e) {
       debugPrint('❌ Mint failed: $e');
-      return MintResult(
-        success: false,
-        error: 'Minting failed: $e',
-      );
+      return MintResult(success: false, error: 'Minting failed: $e');
     }
   }
-  
+
   /// Mint NFT via backend server (real blockchain)
   Future<Map<String, dynamic>?> _mintViaBackend({
     required String walletAddress,
@@ -222,26 +229,30 @@ class NFTMintingService {
   }) async {
     try {
       final backendUrl = await BackendUrlProvider.getBackendUrl();
-      final response = await _httpClient.post(
-        Uri.parse('$backendUrl${SolanaConfig.mintEndpoint}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'walletAddress': walletAddress,
-          'plantName': plantName,
-          'rarity': rarity,
-          'treasureId': treasureId,
-          'imageUrl': imageUrl,
-          'scientificName': scientificName,
-          'description': description,
-          if (latitude != null && longitude != null)
-            'location': {'lat': latitude, 'lng': longitude},
-        }),
-      ).timeout(const Duration(seconds: 30));
-      
+      final response = await _httpClient
+          .post(
+            Uri.parse('$backendUrl${SolanaConfig.mintEndpoint}'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'walletAddress': walletAddress,
+              'plantName': plantName,
+              'rarity': rarity,
+              'treasureId': treasureId,
+              'imageUrl': imageUrl,
+              'scientificName': scientificName,
+              'description': description,
+              if (latitude != null && longitude != null)
+                'location': {'lat': latitude, 'lng': longitude},
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
-        debugPrint('Backend mint failed: ${response.statusCode} - ${response.body}');
+        debugPrint(
+          'Backend mint failed: ${response.statusCode} - ${response.body}',
+        );
         return null;
       }
     } catch (e) {
@@ -249,7 +260,7 @@ class NFTMintingService {
       return null;
     }
   }
-  
+
   /// Save NFT record to Firestore
   Future<void> _saveToFirestore({
     required NFTCard nftCard,
@@ -264,18 +275,24 @@ class NFTMintingService {
       final counterRef = _firestore
           .collection(_plantCountersCollection)
           .doc(_normalizePlantName(plantName));
-      
+
       final counterSnap = await transaction.get(counterRef);
       final currentCounter = counterSnap.exists
           ? PlantCounter.fromJson(counterSnap.data()!)
           : PlantCounter(plantName: _normalizePlantName(plantName));
 
       // Update counter based on rarity
-      final updatedCounter = _incrementCounter(currentCounter, rarity, walletAddress);
+      final updatedCounter = _incrementCounter(
+        currentCounter,
+        rarity,
+        walletAddress,
+      );
       transaction.set(counterRef, updatedCounter.toJson());
 
       // Create NFT card document
-      final nftRef = _firestore.collection(_nftCardsCollection).doc(nftCard.nftMint);
+      final nftRef = _firestore
+          .collection(_nftCardsCollection)
+          .doc(nftCard.nftMint);
       transaction.set(nftRef, {
         ...nftCard.toJson(),
         'treasureId': treasureId,
@@ -307,14 +324,16 @@ class NFTMintingService {
     required bool isWinner,
   }) async {
     try {
-      final rarity = isWinner 
-          ? CardRarity.ascendantSeal 
+      final rarity = isWinner
+          ? CardRarity.ascendantSeal
           : CardRarity.codexOfInsight;
 
-      debugPrint('🎓 Minting Quiz NFT: ${rarity.displayName} (winner: $isWinner)');
+      debugPrint(
+        '🎓 Minting Quiz NFT: ${rarity.displayName} (winner: $isWinner)',
+      );
 
       final nftMint = 'quiz_${_uuid.v4().substring(0, 8)}';
-      
+
       final nftCard = NFTCard(
         ownerWallet: walletAddress,
         plantName: plantName,
@@ -329,13 +348,17 @@ class NFTMintingService {
         final counterRef = _firestore
             .collection(_plantCountersCollection)
             .doc(_normalizePlantName(plantName));
-        
+
         final counterSnap = await transaction.get(counterRef);
         final currentCounter = counterSnap.exists
             ? PlantCounter.fromJson(counterSnap.data()!)
             : PlantCounter(plantName: _normalizePlantName(plantName));
 
-        final updatedCounter = _incrementCounter(currentCounter, rarity, walletAddress);
+        final updatedCounter = _incrementCounter(
+          currentCounter,
+          rarity,
+          walletAddress,
+        );
         transaction.set(counterRef, updatedCounter.toJson());
 
         final nftRef = _firestore.collection(_nftCardsCollection).doc(nftMint);
@@ -352,10 +375,7 @@ class NFTMintingService {
       );
     } catch (e) {
       debugPrint('❌ Quiz mint failed: $e');
-      return MintResult(
-        success: false,
-        error: 'Quiz minting failed: $e',
-      );
+      return MintResult(success: false, error: 'Quiz minting failed: $e');
     }
   }
 
@@ -363,12 +383,18 @@ class NFTMintingService {
 
   /// Get all NFTs owned by a wallet
   Future<List<NFTCard>> getUserNFTs(String walletAddress) async {
+    debugPrint('🔍 MintingService: Querying NFTs for wallet: $walletAddress');
     try {
       final snapshot = await _firestore
           .collection(_nftCardsCollection)
           .where('owner_wallet', isEqualTo: walletAddress)
           .orderBy('minted_at', descending: true)
           .get();
+
+      debugPrint('🔍 MintingService: Found ${snapshot.docs.length} NFTs');
+      for (final doc in snapshot.docs) {
+        debugPrint('  📄 NFT: ${doc.id} - ${doc.data()['plant_name']}');
+      }
 
       return snapshot.docs.map((doc) {
         final data = doc.data();
@@ -387,10 +413,12 @@ class NFTMintingService {
         .where('owner_wallet', isEqualTo: walletAddress)
         .orderBy('minted_at', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data();
-              return NFTCard.fromJson({...data, 'nft_mint': doc.id});
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            return NFTCard.fromJson({...data, 'nft_mint': doc.id});
+          }).toList(),
+        );
   }
 
   /// Check if user already owns a specific plant NFT
@@ -415,7 +443,9 @@ class NFTMintingService {
   }
 
   /// Get rarity distribution for a plant
-  Future<Map<CardRarity, int>> getPlantRarityDistribution(String plantName) async {
+  Future<Map<CardRarity, int>> getPlantRarityDistribution(
+    String plantName,
+  ) async {
     final counter = await getOrCreatePlantCounter(plantName);
     return {
       CardRarity.genesisFragment: counter.commonCount,
@@ -546,7 +576,8 @@ class MintResult {
     this.error,
     this.transactionSignature,
     String? explorerUrl,
-  }) : message = message ?? (success ? 'Mint successful' : error ?? 'Mint failed'),
+  }) : message =
+           message ?? (success ? 'Mint successful' : error ?? 'Mint failed'),
        _explorerUrl = explorerUrl;
 
   /// Get Solana Explorer URL for the transaction
@@ -556,8 +587,10 @@ class MintResult {
     if (transactionSignature!.startsWith('sim_')) return null; // Simulated
     return SolanaConfig.getExplorerUrl(transactionSignature!);
   }
-  
+
   /// Whether this NFT was minted on-chain (vs simulated)
-  bool get isOnChain => _explorerUrl != null || 
-      (transactionSignature != null && !transactionSignature!.startsWith('sim_'));
+  bool get isOnChain =>
+      _explorerUrl != null ||
+      (transactionSignature != null &&
+          !transactionSignature!.startsWith('sim_'));
 }

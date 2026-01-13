@@ -4,7 +4,8 @@ import '../models/plant_counter.dart';
 
 /// Service for managing plant discovery counters and NFT rarity determination
 class PlantDiscoveryService {
-  static final PlantDiscoveryService _instance = PlantDiscoveryService._internal();
+  static final PlantDiscoveryService _instance =
+      PlantDiscoveryService._internal();
   factory PlantDiscoveryService() => _instance;
   PlantDiscoveryService._internal();
 
@@ -44,7 +45,7 @@ class PlantDiscoveryService {
   }
 
   /// Determine NFT rarity for a plant discovery
-  /// 
+  ///
   /// Logic:
   /// - isNewSpeciesDiscovery = true → AuroraSeed (Legendary) - First time this species is ever seen
   /// - First discovery of known plant → PrimordialRelic (Legendary)
@@ -56,7 +57,7 @@ class PlantDiscoveryService {
     required bool isNewSpeciesDiscovery,
   }) async {
     final counter = await getPlantCounter(plantName);
-    
+
     if (counter == null) {
       // Brand new plant - create counter and return highest rarity
       if (isNewSpeciesDiscovery) {
@@ -72,8 +73,10 @@ class PlantDiscoveryService {
     final rarity = counter.getNextAvailableRarity(
       isNewSpeciesDiscovery: isNewSpeciesDiscovery,
     );
-    
-    debugPrint('${rarity.emoji} "$plantName" (count: ${counter.totalMinted}) → ${rarity.displayName}');
+
+    debugPrint(
+      '${rarity.emoji} "$plantName" (count: ${counter.totalMinted}) → ${rarity.displayName}',
+    );
     return rarity;
   }
 
@@ -85,7 +88,9 @@ class PlantDiscoveryService {
     required String discoveredBy,
   }) async {
     final normalized = normalizePlantName(plantName);
-    final docRef = _firestore.collection(_plantCountersCollection).doc(normalized);
+    final docRef = _firestore
+        .collection(_plantCountersCollection)
+        .doc(normalized);
 
     return await _firestore.runTransaction<PlantCounter>((transaction) async {
       final snapshot = await transaction.get(docRef);
@@ -98,10 +103,13 @@ class PlantDiscoveryService {
       }
 
       // Increment counter for the given rarity
-      final updatedCounter = counter.incrementForRarity(rarity, discoveredBy: discoveredBy);
-      
+      final updatedCounter = counter.incrementForRarity(
+        rarity,
+        discoveredBy: discoveredBy,
+      );
+
       transaction.set(docRef, updatedCounter.toFirestore());
-      
+
       debugPrint('✅ Recorded mint: ${updatedCounter.toString()}');
       return updatedCounter;
     });
@@ -110,7 +118,7 @@ class PlantDiscoveryService {
   /// Get discovery statistics for a plant
   Future<Map<String, dynamic>> getPlantStats(String plantName) async {
     final counter = await getPlantCounter(plantName);
-    
+
     if (counter == null) {
       return {
         'isDiscovered': false,

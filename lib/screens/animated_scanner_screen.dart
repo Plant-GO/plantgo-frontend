@@ -12,7 +12,8 @@ import '../services/plant_id_service.dart';
 /// Shows a scanning animation while capturing plant images
 class AnimatedScannerScreen extends StatefulWidget {
   final Level level;
-  final Function(bool success, String? plantName, String? imagePath) onScanComplete;
+  final Function(bool success, String? plantName, String? imagePath, bool? customModelUsed)
+  onScanComplete;
 
   const AnimatedScannerScreen({
     super.key,
@@ -31,7 +32,7 @@ class _AnimatedScannerScreenState extends State<AnimatedScannerScreen>
   bool _isScanning = false;
   bool _isProcessing = false;
   String _statusMessage = 'Point camera at the plant';
-  
+
   // Animation controllers
   late AnimationController _scanLineController;
   late AnimationController _pulseController;
@@ -75,9 +76,10 @@ class _AnimatedScannerScreenState extends State<AnimatedScannerScreen>
       duration: const Duration(seconds: 4),
       vsync: this,
     );
-    _cornerAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(
-      CurvedAnimation(parent: _cornerController, curve: Curves.linear),
-    );
+    _cornerAnimation = Tween<double>(
+      begin: 0,
+      end: 2 * math.pi,
+    ).animate(CurvedAnimation(parent: _cornerController, curve: Curves.linear));
     _cornerController.repeat();
   }
 
@@ -99,7 +101,7 @@ class _AnimatedScannerScreenState extends State<AnimatedScannerScreen>
       );
 
       await _cameraController!.initialize();
-      
+
       if (mounted) {
         setState(() {
           _isCameraInitialized = true;
@@ -135,8 +137,10 @@ class _AnimatedScannerScreenState extends State<AnimatedScannerScreen>
         _statusMessage = 'Identifying plant...';
       });
 
-      // Send to Plant.ID API
-      final result = await _plantIdService.identifyPlant(base64Image);
+      // Send to both Plant.ID API and custom model in parallel
+      final parallelResult = await _plantIdService.identifyParallel(base64Image);
+      final result = parallelResult.result;
+      final customModelUsed = parallelResult.customModelMatched;
 
       if (result.suggestions.isEmpty) {
         setState(() {
@@ -153,30 +157,31 @@ class _AnimatedScannerScreenState extends State<AnimatedScannerScreen>
       final scientificName = topSuggestion.plantName;
 
       // Check if it matches the expected plant
-      final isMatch = SampleLevels.isPlantMatch(
-        widget.level.plantToFindId,
-        [...commonNames, scientificName],
-      );
+      final isMatch = SampleLevels.isPlantMatch(widget.level.plantToFindId, [
+        ...commonNames,
+        scientificName,
+      ]);
 
-      final displayName = commonNames.isNotEmpty 
-          ? commonNames.first 
+      final displayName = commonNames.isNotEmpty
+          ? commonNames.first
           : scientificName;
 
       if (isMatch) {
         setState(() {
           _statusMessage = '✅ Plant matched: $displayName!';
         });
-        
+
         // Wait a moment to show success
         await Future.delayed(const Duration(seconds: 2));
-        
+
         if (mounted) {
-          widget.onScanComplete(true, displayName, imageFile.path);
+          widget.onScanComplete(true, displayName, imageFile.path, customModelUsed);
           Navigator.of(context).pop();
         }
       } else {
         setState(() {
-          _statusMessage = '❌ Found: $displayName\n'
+          _statusMessage =
+              '❌ Found: $displayName\n'
               'Expected: ${widget.level.plantToFindId.replaceAll('_', ' ').toUpperCase()}\n'
               'Try again!';
           _isScanning = false;
@@ -244,8 +249,9 @@ class _AnimatedScannerScreenState extends State<AnimatedScannerScreen>
               builder: (context, child) {
                 final scanAreaTop = MediaQuery.of(context).size.height * 0.2;
                 final scanAreaHeight = MediaQuery.of(context).size.height * 0.5;
-                final linePosition = scanAreaTop + (scanAreaHeight * _scanLineAnimation.value);
-                
+                final linePosition =
+                    scanAreaTop + (scanAreaHeight * _scanLineAnimation.value);
+
                 return Positioned(
                   top: linePosition,
                   left: 40,
@@ -293,7 +299,10 @@ class _AnimatedScannerScreenState extends State<AnimatedScannerScreen>
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(20),
@@ -371,14 +380,16 @@ class _AnimatedScannerScreenState extends State<AnimatedScannerScreen>
                             height: 80,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: _isProcessing 
-                                  ? Colors.grey 
+                              color: _isProcessing
+                                  ? Colors.grey
                                   : AppColors.primary,
                               boxShadow: [
                                 BoxShadow(
-                                  color: (_isProcessing 
-                                      ? Colors.grey 
-                                      : AppColors.primary).withValues(alpha: 0.5),
+                                  color:
+                                      (_isProcessing
+                                              ? Colors.grey
+                                              : AppColors.primary)
+                                          .withValues(alpha: 0.5),
                                   blurRadius: 20,
                                   spreadRadius: 5,
                                 ),
@@ -461,7 +472,7 @@ class ScannerOverlayPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final cornerLength = 30.0 * pulseScale.value;
-    
+
     // Top-left corner
     canvas.drawLine(
       Offset(scanAreaLeft, scanAreaTop + cornerLength),
@@ -500,12 +511,18 @@ class ScannerOverlayPainter extends CustomPainter {
 
     // Bottom-right corner
     canvas.drawLine(
-      Offset(scanAreaLeft + scanAreaWidth - cornerLength, scanAreaTop + scanAreaHeight),
+      Offset(
+        scanAreaLeft + scanAreaWidth - cornerLength,
+        scanAreaTop + scanAreaHeight,
+      ),
       Offset(scanAreaLeft + scanAreaWidth, scanAreaTop + scanAreaHeight),
       cornerPaint,
     );
     canvas.drawLine(
-      Offset(scanAreaLeft + scanAreaWidth, scanAreaTop + scanAreaHeight - cornerLength),
+      Offset(
+        scanAreaLeft + scanAreaWidth,
+        scanAreaTop + scanAreaHeight - cornerLength,
+      ),
       Offset(scanAreaLeft + scanAreaWidth, scanAreaTop + scanAreaHeight),
       cornerPaint,
     );
@@ -523,7 +540,7 @@ class ScannerOverlayPainter extends CustomPainter {
         final particleProgress = (scanProgress.value + i * 0.05) % 1.0;
         final particleSize = 3.0 + particleProgress * 4;
         final alpha = (1 - particleProgress) * 0.5;
-        
+
         canvas.drawCircle(
           Offset(x, y),
           particleSize,

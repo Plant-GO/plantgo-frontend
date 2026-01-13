@@ -42,15 +42,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       ),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.2, 0.8, curve: Curves.easeOut),
-      ),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: const Interval(0.2, 0.8, curve: Curves.easeOut),
+          ),
+        );
 
     _animationController.forward();
   }
@@ -64,7 +62,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   Future<String> _getDeviceId() async {
     final deviceInfo = DeviceInfoPlugin();
-    
+
     if (Platform.isAndroid) {
       final androidInfo = await deviceInfo.androidInfo;
       return androidInfo.id;
@@ -72,7 +70,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       final iosInfo = await deviceInfo.iosInfo;
       return iosInfo.identifierForVendor ?? 'unknown_ios_device';
     }
-    
+
     return 'unknown_device';
   }
 
@@ -109,10 +107,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -135,7 +130,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const SizedBox(height: 60),
-                    
+
                     // App Icon/Logo
                     Container(
                       width: 120,
@@ -159,15 +154,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         ],
                       ),
                       child: const Center(
-                        child: Text(
-                          '🌿',
-                          style: TextStyle(fontSize: 60),
-                        ),
+                        child: Text('🌿', style: TextStyle(fontSize: 60)),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 40),
-                    
+
                     // Welcome Text
                     const Text(
                       'Welcome to PlantGo!',
@@ -177,9 +169,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 12),
-                    
+
                     Text(
                       'Discover plants around you through\nfun riddles and treasure hunts',
                       textAlign: TextAlign.center,
@@ -189,9 +181,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         height: 1.5,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 60),
-                    
+
                     // Name Input
                     Container(
                       padding: const EdgeInsets.all(24),
@@ -217,9 +209,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                               color: AppColors.textPrimary,
                             ),
                           ),
-                          
+
                           const SizedBox(height: 8),
-                          
+
                           Text(
                             'This will be shown on your plant discoveries',
                             style: TextStyle(
@@ -227,9 +219,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                               color: AppColors.textSecondary,
                             ),
                           ),
-                          
+
                           const SizedBox(height: 20),
-                          
+
                           TextFormField(
                             controller: _nameController,
                             textCapitalization: TextCapitalization.words,
@@ -281,9 +273,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 40),
-                    
+
                     // Get Started Button
                     SizedBox(
                       width: double.infinity,
@@ -323,9 +315,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                               ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Features preview
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -335,7 +327,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         _buildFeatureChip(Icons.map_rounded, 'Explore'),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 40),
                   ],
                 ),

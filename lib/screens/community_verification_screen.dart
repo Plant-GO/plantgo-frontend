@@ -14,10 +14,12 @@ class CommunityVerificationScreen extends StatefulWidget {
   const CommunityVerificationScreen({super.key});
 
   @override
-  State<CommunityVerificationScreen> createState() => _CommunityVerificationScreenState();
+  State<CommunityVerificationScreen> createState() =>
+      _CommunityVerificationScreenState();
 }
 
-class _CommunityVerificationScreenState extends State<CommunityVerificationScreen>
+class _CommunityVerificationScreenState
+    extends State<CommunityVerificationScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -62,7 +64,10 @@ class _CommunityVerificationScreenState extends State<CommunityVerificationScree
               if (provider.pendingCount > 0) {
                 return Container(
                   margin: const EdgeInsets.only(right: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -70,7 +75,11 @@ class _CommunityVerificationScreenState extends State<CommunityVerificationScree
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.pending_actions, size: 16, color: AppColors.primary),
+                      Icon(
+                        Icons.pending_actions,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '${provider.pendingCount}',
@@ -147,8 +156,12 @@ class _CommunityVerificationScreenState extends State<CommunityVerificationScree
                   if (success && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(isUpvote ? '👍 Upvoted!' : '👎 Downvoted'),
-                        backgroundColor: isUpvote ? AppColors.success : Colors.orange,
+                        content: Text(
+                          isUpvote ? '👍 Upvoted!' : '👎 Downvoted',
+                        ),
+                        backgroundColor: isUpvote
+                            ? AppColors.success
+                            : Colors.orange,
                         duration: const Duration(seconds: 2),
                       ),
                     );
@@ -247,7 +260,10 @@ class _CommunityVerificationScreenState extends State<CommunityVerificationScree
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -317,17 +333,23 @@ class _VerificationCardState extends State<_VerificationCard> {
 
     try {
       final userProvider = context.read<UserProvider>();
-      final correctorName = userProvider.userName.isEmpty ? 'Explorer' : userProvider.userName;
-      
+      final correctorName = userProvider.userName.isEmpty
+          ? 'Explorer'
+          : userProvider.userName;
+
       await _correctionService.submitCorrection(
         originalTreasureId: widget.treasureId,
-        originalPlantName: widget.treasureData['plantName'] ?? widget.treasureData['commonName'] ?? 'Unknown',
+        originalPlantName:
+            widget.treasureData['plantName'] ??
+            widget.treasureData['commonName'] ??
+            'Unknown',
         correctedPlantName: _plantNameController.text.trim(),
         correctedBy: userProvider.deviceId,
         correctedByName: correctorName,
         originalDiscoveredBy: widget.treasureData['deviceId'] ?? '',
         originalDiscoveredByName: widget.treasureData['userName'] ?? 'Explorer',
-        originalConfidence: (widget.treasureData['confidence'] ?? 0.0).toDouble(),
+        originalConfidence: (widget.treasureData['confidence'] ?? 0.0)
+            .toDouble(),
         imageBase64: widget.treasureData['imageBase64'],
         latitude: widget.treasureData['latitude']?.toDouble(),
         longitude: widget.treasureData['longitude']?.toDouble(),
@@ -344,7 +366,7 @@ class _VerificationCardState extends State<_VerificationCard> {
             duration: Duration(seconds: 3),
           ),
         );
-        
+
         setState(() {
           _showCorrectionPanel = false;
           _knowsPlantName = false;
@@ -379,12 +401,19 @@ class _VerificationCardState extends State<_VerificationCard> {
 
   @override
   Widget build(BuildContext context) {
-    final plantName = widget.treasureData['commonName'] ?? widget.treasureData['name'] ?? 'Unknown';
+    final plantName =
+        widget.treasureData['commonName'] ??
+        widget.treasureData['name'] ??
+        'Unknown';
     final scientificName = widget.treasureData['plantName'] ?? '';
     final confidence = (widget.treasureData['confidence'] ?? 0.0) as double;
-    final imageBase64 = widget.treasureData['imageBase64'] ?? widget.treasureData['imageUrl'] ?? '';
+    final imageBase64 =
+        widget.treasureData['imageBase64'] ??
+        widget.treasureData['imageUrl'] ??
+        '';
     final userName = widget.treasureData['userName'] ?? 'Explorer';
-    final discoveredAt = (widget.treasureData['discoveredAt'] as Timestamp?)?.toDate();
+    final discoveredAt = (widget.treasureData['discoveredAt'] as Timestamp?)
+        ?.toDate();
     final upvotes = widget.verification?.upvotes ?? 0;
     final downvotes = widget.verification?.downvotes ?? 0;
 
@@ -430,7 +459,8 @@ class _VerificationCardState extends State<_VerificationCard> {
                               color: AppColors.textPrimary,
                             ),
                           ),
-                          if (scientificName.isNotEmpty && scientificName != plantName)
+                          if (scientificName.isNotEmpty &&
+                              scientificName != plantName)
                             Text(
                               scientificName,
                               style: const TextStyle(
@@ -444,9 +474,14 @@ class _VerificationCardState extends State<_VerificationCard> {
                     ),
                     // Confidence badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: _getConfidenceColor(confidence).withValues(alpha: 0.1),
+                        color: _getConfidenceColor(
+                          confidence,
+                        ).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -466,19 +501,33 @@ class _VerificationCardState extends State<_VerificationCard> {
                 // Discoverer info
                 Row(
                   children: [
-                    Icon(Icons.person_outline, size: 16, color: AppColors.textSecondary),
+                    Icon(
+                      Icons.person_outline,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       'Discovered by $userName',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     if (discoveredAt != null) ...[
                       const SizedBox(width: 12),
-                      Icon(Icons.access_time, size: 16, color: AppColors.textSecondary),
+                      Icon(
+                        Icons.access_time,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         _formatDate(discoveredAt),
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ],
@@ -490,38 +539,67 @@ class _VerificationCardState extends State<_VerificationCard> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.thumb_up, size: 14, color: Colors.green),
+                          const Icon(
+                            Icons.thumb_up,
+                            size: 14,
+                            color: Colors.green,
+                          ),
                           const SizedBox(width: 4),
-                          Text('$upvotes', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                          Text(
+                            '$upvotes',
+                            style: const TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.thumb_down, size: 14, color: Colors.red),
+                          const Icon(
+                            Icons.thumb_down,
+                            size: 14,
+                            color: Colors.red,
+                          ),
                           const SizedBox(width: 4),
-                          Text('$downvotes', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                          Text(
+                            '$downvotes',
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     const Spacer(),
                     Text(
                       '${4 - upvotes} more to verify',
-                      style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textTertiary,
+                      ),
                     ),
                   ],
                 ),
@@ -602,7 +680,11 @@ class _VerificationCardState extends State<_VerificationCard> {
         children: [
           Row(
             children: [
-              Icon(Icons.lightbulb_outline, color: Colors.orange.shade700, size: 20),
+              Icon(
+                Icons.lightbulb_outline,
+                color: Colors.orange.shade700,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -622,9 +704,9 @@ class _VerificationCardState extends State<_VerificationCard> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           if (!_knowsPlantName)
             Row(
               children: [
@@ -679,9 +761,9 @@ class _VerificationCardState extends State<_VerificationCard> {
               textCapitalization: TextCapitalization.words,
               autofocus: true,
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             Row(
               children: [
                 Expanded(
@@ -699,10 +781,10 @@ class _VerificationCardState extends State<_VerificationCard> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _isSubmitting ? null : _handleSubmitCorrection,
-                    icon: _isSubmitting 
+                    icon: _isSubmitting
                         ? const SizedBox(
-                            width: 16, 
-                            height: 16, 
+                            width: 16,
+                            height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               color: Colors.white,
@@ -722,9 +804,9 @@ class _VerificationCardState extends State<_VerificationCard> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             Text(
               '💡 Your correction will be reviewed by the community. If approved, you\'ll be credited as the identifier!',
               style: TextStyle(
@@ -761,7 +843,11 @@ class _VerificationCardState extends State<_VerificationCard> {
           height: 200,
           color: AppColors.primaryLight.withValues(alpha: 0.2),
           child: const Center(
-            child: Icon(Icons.image_not_supported, size: 48, color: AppColors.textSecondary),
+            child: Icon(
+              Icons.image_not_supported,
+              size: 48,
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
       );
@@ -785,7 +871,7 @@ class _VerificationCardState extends State<_VerificationCard> {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final diff = now.difference(date);
-    
+
     if (diff.inDays == 0) {
       if (diff.inHours == 0) {
         return '${diff.inMinutes}m ago';
@@ -811,9 +897,11 @@ class _SubmissionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final plantName = treasureData['commonName'] ?? treasureData['name'] ?? 'Unknown';
+    final plantName =
+        treasureData['commonName'] ?? treasureData['name'] ?? 'Unknown';
     final confidence = (treasureData['confidence'] ?? 0.0) as double;
-    final imageBase64 = treasureData['imageBase64'] ?? treasureData['imageUrl'] ?? '';
+    final imageBase64 =
+        treasureData['imageBase64'] ?? treasureData['imageUrl'] ?? '';
     final status = verification?.status ?? VerificationStatus.pending;
     final upvotes = verification?.upvotes ?? 0;
     final downvotes = verification?.downvotes ?? 0;
@@ -835,7 +923,9 @@ class _SubmissionCard extends StatelessWidget {
         children: [
           // Image thumbnail
           ClipRRect(
-            borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
+            borderRadius: const BorderRadius.horizontal(
+              left: Radius.circular(16),
+            ),
             child: _buildThumbnail(imageBase64),
           ),
 
@@ -856,13 +946,16 @@ class _SubmissionCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  
+
                   const SizedBox(height: 4),
-                  
+
                   // Confidence
                   Text(
                     '${(confidence * 100).toStringAsFixed(0)}% confidence',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
 
                   const SizedBox(height: 8),
@@ -871,7 +964,10 @@ class _SubmissionCard extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Color(status.color).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
@@ -879,7 +975,10 @@ class _SubmissionCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(status.emoji, style: const TextStyle(fontSize: 12)),
+                            Text(
+                              status.emoji,
+                              style: const TextStyle(fontSize: 12),
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               status.displayName,
@@ -896,7 +995,10 @@ class _SubmissionCard extends StatelessWidget {
                       if (status == VerificationStatus.pending)
                         Text(
                           '👍$upvotes 👎$downvotes',
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                     ],
                   ),

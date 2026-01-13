@@ -60,8 +60,8 @@ class Treasure {
   bool get needsVerification => confidence < verificationConfidenceThreshold;
 
   /// Check if this treasure is verified (auto or community)
-  bool get isVerified => 
-      verificationStatus == VerificationStatus.autoVerified || 
+  bool get isVerified =>
+      verificationStatus == VerificationStatus.autoVerified ||
       verificationStatus == VerificationStatus.verified;
 
   factory Treasure.fromFirestore(DocumentSnapshot doc) {
@@ -75,7 +75,8 @@ class Treasure {
       imageBase64: data['imageUrl'] ?? data['imageBase64'] ?? '',
       userId: data['userId'] ?? '',
       userName: data['userName'] ?? '',
-      discoveredAt: (data['discoveredAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      discoveredAt:
+          (data['discoveredAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       levelId: data['levelId'] ?? 0,
       confidence: (data['confidence'] ?? 0).toDouble(),
       description: data['description'],
@@ -90,12 +91,12 @@ class Treasure {
     final validLatitude = latitude.isFinite ? latitude : 0.0;
     final validLongitude = longitude.isFinite ? longitude : 0.0;
     final validConfidence = confidence.isFinite ? confidence : 0.0;
-    
+
     // Determine verification status based on confidence
     final status = validConfidence >= verificationConfidenceThreshold
         ? VerificationStatus.autoVerified
         : VerificationStatus.pending;
-    
+
     return {
       'name': commonName.isNotEmpty ? commonName : plantName,
       'plantName': plantName,
@@ -113,7 +114,8 @@ class Treasure {
       'confidence': validConfidence,
       'location': GeoPoint(validLatitude, validLongitude),
       'verificationStatus': status.name,
-      if (description != null && description!.isNotEmpty) 'description': description,
+      if (description != null && description!.isNotEmpty)
+        'description': description,
     };
   }
 }
@@ -142,7 +144,7 @@ class TreasureService {
   }) async {
     final treasureId = _uuid.v4();
     final autoVerified = confidence >= verificationConfidenceThreshold;
-    
+
     final treasure = Treasure(
       id: treasureId,
       plantName: plantName,
@@ -156,27 +158,29 @@ class TreasureService {
       levelId: levelId,
       confidence: confidence,
       description: description,
-      verificationStatus: autoVerified 
-          ? VerificationStatus.autoVerified 
+      verificationStatus: autoVerified
+          ? VerificationStatus.autoVerified
           : VerificationStatus.pending,
     );
 
     // Save to Firestore
     try {
       print('💾 Attempting to save treasure to Firestore...');
-      
+
       await _firestore
           .collection(_treasuresCollection)
           .doc(treasureId)
           .set(treasure.toFirestore());
-      
+
       print('✅ Treasure saved successfully to Firestore: $treasureId');
 
       // Handle based on confidence level
       if (!autoVerified) {
-        print('⏳ Low confidence (${(confidence * 100).toStringAsFixed(0)}%) - creating verification record');
+        print(
+          '⏳ Low confidence (${(confidence * 100).toStringAsFixed(0)}%) - creating verification record',
+        );
         await _initializeVerification(treasureId, confidence);
-        
+
         return TreasureSaveResult(
           treasure: treasure,
           autoVerified: false,
@@ -184,13 +188,19 @@ class TreasureService {
         );
       }
 
-      print('✅ Auto-verified (${(confidence * 100).toStringAsFixed(0)}% confidence)');
+      print(
+        '✅ Auto-verified (${(confidence * 100).toStringAsFixed(0)}% confidence)',
+      );
 
       // Mint NFT for auto-verified treasures
       if (walletAddress != null) {
+        print('🎴 Auto-minting NFT with wallet: $walletAddress');
         final mintResult = await _mintNFTForTreasure(
           treasureId: treasureId,
-          plantName: plantName,
+          plantName: commonName, // Use common name for display
+          scientificName: plantName != commonName
+              ? plantName
+              : null, // Pass scientific name if different
           walletAddress: walletAddress,
           imageUrl: imageBase64,
         );
@@ -202,7 +212,7 @@ class TreasureService {
           nftRarity: mintResult.nftCard?.rarity.displayName,
         );
       }
-      
+
       return TreasureSaveResult(
         treasure: treasure,
         autoVerified: true,
@@ -220,6 +230,7 @@ class TreasureService {
     required String treasureId,
     required String plantName,
     required String walletAddress,
+    String? scientificName,
     String? imageUrl,
   }) async {
     try {
@@ -232,18 +243,22 @@ class TreasureService {
         plantName: plantName,
         isNewSpecies: isNew,
         imageUrl: imageUrl,
+        scientificName: scientificName,
         treasureId: treasureId,
       );
 
       if (result.success && result.nftCard != null) {
         // Update treasure with NFT info
-        await _firestore.collection(_treasuresCollection).doc(treasureId).update({
-          'nftMinted': true,
-          'nftMint': result.nftCard!.nftMint,
-          'nftRarity': result.nftCard!.rarity.name,
-          'nftMintedAt': FieldValue.serverTimestamp(),
-          'isNewSpecies': isNew,
-        });
+        await _firestore
+            .collection(_treasuresCollection)
+            .doc(treasureId)
+            .update({
+              'nftMinted': true,
+              'nftMint': result.nftCard!.nftMint,
+              'nftRarity': result.nftCard!.rarity.name,
+              'nftMintedAt': FieldValue.serverTimestamp(),
+              'isNewSpecies': isNew,
+            });
         print('🎴 NFT minted: ${result.nftCard!.rarity.displayName}');
       }
 
@@ -259,8 +274,11 @@ class TreasureService {
     required String treasureId,
     required String walletAddress,
   }) async {
-    final doc = await _firestore.collection(_treasuresCollection).doc(treasureId).get();
-    
+    final doc = await _firestore
+        .collection(_treasuresCollection)
+        .doc(treasureId)
+        .get();
+
     if (!doc.exists) {
       return MintResult(success: false, error: 'Treasure not found');
     }
@@ -277,17 +295,17 @@ class TreasureService {
   }
 
   /// Initialize verification record for low-confidence discoveries
-  Future<void> _initializeVerification(String treasureId, double confidence) async {
+  Future<void> _initializeVerification(
+    String treasureId,
+    double confidence,
+  ) async {
     try {
-      await _firestore
-          .collection('verifications')
-          .doc(treasureId)
-          .set({
-            'upvotes': 0,
-            'downvotes': 0,
-            'voterIds': [],
-            'status': 'pending',
-          });
+      await _firestore.collection('verifications').doc(treasureId).set({
+        'upvotes': 0,
+        'downvotes': 0,
+        'voterIds': [],
+        'status': 'pending',
+      });
       print('✅ Verification record created for $treasureId');
     } catch (e) {
       print('⚠️ Warning: Could not create verification record: $e');
@@ -313,8 +331,10 @@ class TreasureService {
         .where('userId', isEqualTo: userId)
         .orderBy('discoveredAt', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Treasure.fromFirestore(doc)).toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Treasure.fromFirestore(doc)).toList(),
+        );
   }
 
   /// Get all treasures (community map) - ONLY VERIFIED PLANTS
@@ -322,20 +342,25 @@ class TreasureService {
     try {
       final snapshot = await _firestore
           .collection(_treasuresCollection)
-          .where('verificationStatus', whereIn: [
-            VerificationStatus.autoVerified.name,
-            VerificationStatus.verified.name,
-          ])
+          .where(
+            'verificationStatus',
+            whereIn: [
+              VerificationStatus.autoVerified.name,
+              VerificationStatus.verified.name,
+            ],
+          )
           .limit(100)
           .get();
-      
-      print('📍 Firestore query completed. Found ${snapshot.docs.length} verified treasures');
-      
+
+      print(
+        '📍 Firestore query completed. Found ${snapshot.docs.length} verified treasures',
+      );
+
       final treasures = snapshot.docs.map((doc) {
         print('📍 Processing document ${doc.id}: ${doc.data()}');
         return Treasure.fromFirestore(doc);
       }).toList();
-      
+
       return treasures;
     } catch (e) {
       print('❌ Error fetching treasures: $e');
@@ -350,8 +375,10 @@ class TreasureService {
         .where('userId', isEqualTo: userId)
         .orderBy('discoveredAt', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Treasure.fromFirestore(doc)).toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Treasure.fromFirestore(doc)).toList(),
+        );
   }
 
   /// Check if user has already discovered a plant for a specific level

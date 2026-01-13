@@ -4,13 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 enum VerificationStatus {
   /// Automatically verified (confidence >= 60%)
   autoVerified,
-  
+
   /// Pending community verification (confidence < 60%)
   pending,
-  
+
   /// Verified by community (4+ upvotes)
   verified,
-  
+
   /// Rejected by community (2+ downvotes)
   rejected,
 }
@@ -109,7 +109,9 @@ class TreasureVerification {
       upvotes: data['upvotes'] ?? 0,
       downvotes: data['downvotes'] ?? 0,
       voterIds: List<String>.from(data['voterIds'] ?? []),
-      status: VerificationStatusExtension.fromString(data['status'] ?? 'pending'),
+      status: VerificationStatusExtension.fromString(
+        data['status'] ?? 'pending',
+      ),
       verifiedAt: (data['verifiedAt'] as Timestamp?)?.toDate(),
       verifiedBy: data['verifiedBy'],
     );

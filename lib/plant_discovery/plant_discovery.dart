@@ -1,5 +1,5 @@
 /// Plant Discovery Module
-/// 
+///
 /// This module provides NFT rarity determination based on plant discovery order
 /// and handles plant identification corrections from the community.
 library plant_discovery;
