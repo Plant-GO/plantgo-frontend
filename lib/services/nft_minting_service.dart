@@ -104,6 +104,7 @@ class NFTMintingService {
   }) async {
     try {
       debugPrint('🎴 Starting mint for $plantName (isNewSpecies: $isNewSpecies)');
+      debugPrint('🎴 Wallet address for mint: $walletAddress');
 
       // Get or create plant counter
       final counter = await getOrCreatePlantCounter(plantName);
@@ -363,12 +364,18 @@ class NFTMintingService {
 
   /// Get all NFTs owned by a wallet
   Future<List<NFTCard>> getUserNFTs(String walletAddress) async {
+    debugPrint('🔍 MintingService: Querying NFTs for wallet: $walletAddress');
     try {
       final snapshot = await _firestore
           .collection(_nftCardsCollection)
           .where('owner_wallet', isEqualTo: walletAddress)
           .orderBy('minted_at', descending: true)
           .get();
+
+      debugPrint('🔍 MintingService: Found ${snapshot.docs.length} NFTs');
+      for (final doc in snapshot.docs) {
+        debugPrint('  📄 NFT: ${doc.id} - ${doc.data()['plant_name']}');
+      }
 
       return snapshot.docs.map((doc) {
         final data = doc.data();

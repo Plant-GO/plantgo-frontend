@@ -9,10 +9,6 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    
-    <!-- Internet permission for Solana RPC -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    
     <application
         android:label="plantgo"
         android:name="${applicationName}"
@@ -39,11 +35,12 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
             
-            <!-- Deep link handling for Phantom wallet callbacks -->
+            <!-- Deep link intent filter for Phantom wallet callback -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <!-- Your app's callback scheme (must match SolanaConfig.appScheme) -->
                 <data android:scheme="plantgo" />
             </intent-filter>
         </activity>
@@ -63,14 +60,12 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        
-        <!-- Query for Phantom wallet app -->
+        <!-- Required for canLaunchUrl() to detect Phantom wallet -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="phantom" />
         </intent>
-        
-        <!-- Query for https URLs (for fallback) -->
+        <!-- Required for opening Play Store -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />

@@ -36,21 +36,25 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final hasCompletedOnboarding = prefs.getBool('hasCompletedOnboarding') ?? false;
   final userName = prefs.getString('userName');
+  final deviceId = prefs.getString('deviceId');
 
   runApp(PlantGoApp(
     hasCompletedOnboarding: hasCompletedOnboarding,
     userName: userName,
+    deviceId: deviceId,
   ));
 }
 
 class PlantGoApp extends StatelessWidget {
   final bool hasCompletedOnboarding;
   final String? userName;
+  final String? deviceId;
 
   const PlantGoApp({
     super.key,
     required this.hasCompletedOnboarding,
     this.userName,
+    this.deviceId,
   });
 
   @override
@@ -59,7 +63,9 @@ class PlantGoApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => CourseProvider()),
         ChangeNotifierProvider(create: (_) => MapProvider()),
-        ChangeNotifierProvider(create: (_) => UserProvider()..setUserName(userName ?? '')),
+        ChangeNotifierProvider(create: (_) => UserProvider()
+          ..setUserName(userName ?? '')
+          ..setDeviceId(deviceId ?? '')),
         ChangeNotifierProvider(create: (_) => ScanProvider()),
         // Blockchain providers
         ChangeNotifierProvider(create: (_) => WalletProvider()..initialize()),

@@ -188,9 +188,11 @@ class TreasureService {
 
       // Mint NFT for auto-verified treasures
       if (walletAddress != null) {
+        print('🎴 Auto-minting NFT with wallet: $walletAddress');
         final mintResult = await _mintNFTForTreasure(
           treasureId: treasureId,
-          plantName: plantName,
+          plantName: commonName, // Use common name for display
+          scientificName: plantName != commonName ? plantName : null, // Pass scientific name if different
           walletAddress: walletAddress,
           imageUrl: imageBase64,
         );
@@ -220,6 +222,7 @@ class TreasureService {
     required String treasureId,
     required String plantName,
     required String walletAddress,
+    String? scientificName,
     String? imageUrl,
   }) async {
     try {
@@ -232,6 +235,7 @@ class TreasureService {
         plantName: plantName,
         isNewSpecies: isNew,
         imageUrl: imageUrl,
+        scientificName: scientificName,
         treasureId: treasureId,
       );
 
