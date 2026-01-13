@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import '../blockchain/blockchain.dart';
 import '../core/theme/app_colors.dart';
 import '../models/level.dart';
@@ -666,13 +667,32 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
       MaterialPageRoute(
         builder: (_) => AnimatedScannerScreen(
           level: level,
-          onScanComplete: (success, plantName, imagePath) async {
+          onScanComplete: (success, plantName, imagePath, customModelUsed) async {
+            // Show snackbar on parent screen after scanner closes
+            if (mounted) {
+              _showModelUsedSnackbar(customModelUsed ?? false);
+            }
             if (success && imagePath != null) {
               await _saveTreasure(context, level, plantName!, imagePath);
             }
           },
         ),
       ),
+    );
+  }
+
+  /// Show a minimal toast indicating which source was used
+  void _showModelUsedSnackbar(bool customModelUsed) {
+    final message = customModelUsed ? 'Custom model used' : 'API used';
+    final backgroundColor = customModelUsed ? AppColors.primary : Colors.blueGrey;
+
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: backgroundColor,
+      textColor: Colors.white,
+      fontSize: 12.0,
     );
   }
 

@@ -58,6 +58,7 @@ dependencies:
   # UI Enhancements for NFT Cards
   shimmer: ^3.0.0            # Shimmer effects for loading/cards
   lottie: ^3.1.0             # Success animations
+  fluttertoast: ^9.0.0
 
 dev_dependencies:
   flutter_test:

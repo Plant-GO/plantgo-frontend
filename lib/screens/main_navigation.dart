@@ -8,6 +8,7 @@ import 'package:camera/camera.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import '../core/theme/app_colors.dart';
 import '../services/plant_id_service.dart';
 import '../services/treasure_service.dart';
@@ -388,8 +389,8 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                 final base64Image = base64Encode(bytes);
 
                 try {
-                  // Call PlantID API
-                  final result = await _plantIdService.identifyPlant(
+                  // Call both Plant.id API and custom model in parallel
+                  final parallelResult = await _plantIdService.identifyParallel(
                     base64Image,
                   );
 
@@ -397,7 +398,8 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                     setState(() {
                       _isAnalyzing = false;
                     });
-                    _showResultDialog(result);
+                    _showCustomModelSnackbar(parallelResult);
+                    _showResultDialog(parallelResult.result);
                   }
                 } catch (e) {
                   debugPrint('Identification error: $e');
@@ -436,14 +438,15 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
         final base64Image = base64Encode(bytes);
 
         try {
-          // Call PlantID API
-          final result = await _plantIdService.identifyPlant(base64Image);
+          // Call both Plant.id API and custom model in parallel
+          final parallelResult = await _plantIdService.identifyParallel(base64Image);
 
           if (mounted) {
             setState(() {
               _isAnalyzing = false;
             });
-            _showResultDialog(result);
+            _showCustomModelSnackbar(parallelResult);
+            _showResultDialog(parallelResult.result);
           }
         } catch (e) {
           debugPrint('Identification error: $e');
@@ -463,6 +466,29 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Error accessing camera: $e')));
     }
+  }
+
+  /// Show a minimal toast indicating which source was used
+  void _showCustomModelSnackbar(ParallelIdentificationResult parallelResult) {
+    final String message;
+    final Color backgroundColor;
+
+    if (parallelResult.customModelMatched) {
+      message = 'Custom model used';
+      backgroundColor = AppColors.primary;
+    } else {
+      message = 'API used';
+      backgroundColor = Colors.blueGrey;
+    }
+
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: backgroundColor,
+      textColor: Colors.white,
+      fontSize: 12.0,
+    );
   }
 
   void _showResultDialog(PlantIdResult result) {

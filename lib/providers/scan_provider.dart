@@ -18,6 +18,12 @@ class ScanProvider extends ChangeNotifier {
   Plant? _identifiedPlant;
   VerificationResult? _verificationResult;
   String? _errorMessage;
+  bool _customModelMatched = false;
+  bool _customModelIdentified = false;
+
+  // Getters for custom model status
+  bool get customModelMatched => _customModelMatched;
+  bool get customModelIdentified => _customModelIdentified;
 
   ScanState get state => _state;
   String? get capturedImagePath => _capturedImagePath;
@@ -98,7 +104,13 @@ class ScanProvider extends ChangeNotifier {
       final bytes = await File(_capturedImagePath!).readAsBytes();
       final base64Image = base64Encode(bytes);
 
-      final result = await _plantIdService.identifyPlant(base64Image);
+      // Use parallel identification (Plant.id + custom model)
+      final parallelResult = await _plantIdService.identifyParallel(base64Image);
+      final result = parallelResult.result;
+
+      // Store custom model match info
+      _customModelMatched = parallelResult.customModelMatched;
+      _customModelIdentified = parallelResult.customModelIdentified;
 
       if (result.suggestions.isNotEmpty) {
         final topMatch = result.suggestions.first;

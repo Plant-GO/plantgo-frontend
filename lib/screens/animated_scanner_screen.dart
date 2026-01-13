@@ -12,7 +12,7 @@ import '../services/plant_id_service.dart';
 /// Shows a scanning animation while capturing plant images
 class AnimatedScannerScreen extends StatefulWidget {
   final Level level;
-  final Function(bool success, String? plantName, String? imagePath)
+  final Function(bool success, String? plantName, String? imagePath, bool? customModelUsed)
   onScanComplete;
 
   const AnimatedScannerScreen({
@@ -137,8 +137,10 @@ class _AnimatedScannerScreenState extends State<AnimatedScannerScreen>
         _statusMessage = 'Identifying plant...';
       });
 
-      // Send to Plant.ID API
-      final result = await _plantIdService.identifyPlant(base64Image);
+      // Send to both Plant.ID API and custom model in parallel
+      final parallelResult = await _plantIdService.identifyParallel(base64Image);
+      final result = parallelResult.result;
+      final customModelUsed = parallelResult.customModelMatched;
 
       if (result.suggestions.isEmpty) {
         setState(() {
@@ -173,7 +175,7 @@ class _AnimatedScannerScreenState extends State<AnimatedScannerScreen>
         await Future.delayed(const Duration(seconds: 2));
 
         if (mounted) {
-          widget.onScanComplete(true, displayName, imageFile.path);
+          widget.onScanComplete(true, displayName, imageFile.path, customModelUsed);
           Navigator.of(context).pop();
         }
       } else {
