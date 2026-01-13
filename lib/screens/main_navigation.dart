@@ -55,34 +55,45 @@ class _MainNavigationState extends State<MainNavigation> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('deviceId');
-      
+
       if (userId != null && mounted) {
         // Set user ID in UserProvider (IMPORTANT: This must be done first!)
         final userProvider = Provider.of<UserProvider>(context, listen: false);
         userProvider.setDeviceId(userId);
         debugPrint('🆔 Set deviceId in UserProvider: $userId');
-        
+
         // Load course progress
-        final courseProvider = Provider.of<CourseProvider>(context, listen: false);
+        final courseProvider = Provider.of<CourseProvider>(
+          context,
+          listen: false,
+        );
         await courseProvider.loadUserProgress(userId);
         debugPrint('✅ Loaded course progress for $userId');
-        
+
         // Load user coins and leaves from Firebase
         final userService = UserService();
         final user = await userService.getUser(userId);
         if (user != null && mounted) {
           // Update the UserProvider with Firebase data
           userProvider.setCoinsAndLeaves(user.coins, user.leaves);
-          debugPrint('💰 Loaded ${user.coins} coins and ${user.leaves} leaves for $userId');
+          debugPrint(
+            '💰 Loaded ${user.coins} coins and ${user.leaves} leaves for $userId',
+          );
         }
 
         // Initialize verification provider
-        final verificationProvider = Provider.of<VerificationProvider>(context, listen: false);
+        final verificationProvider = Provider.of<VerificationProvider>(
+          context,
+          listen: false,
+        );
         verificationProvider.initialize(userId);
         debugPrint('✅ Initialized verification provider for $userId');
 
         // Initialize NFT provider with wallet address
-        final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+        final walletProvider = Provider.of<WalletProvider>(
+          context,
+          listen: false,
+        );
         final nftProvider = Provider.of<NFTProvider>(context, listen: false);
         final walletAddress = walletProvider.walletAddress ?? 'device_$userId';
         nftProvider.initialize(walletAddress);
@@ -151,11 +162,13 @@ class _MainNavigationState extends State<MainNavigation> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               // Left side items
+              Flexible(child: _buildNavItem(0, Icons.route_rounded, 'Course')),
               Flexible(
-                child: _buildNavItem(0, Icons.route_rounded, 'Course'),
-              ),
-              Flexible(
-                child: _buildNavItemWithBadge(1, Icons.how_to_vote_rounded, 'Community'),
+                child: _buildNavItemWithBadge(
+                  1,
+                  Icons.how_to_vote_rounded,
+                  'Community',
+                ),
               ),
 
               // Center gap for FAB
@@ -170,7 +183,11 @@ class _MainNavigationState extends State<MainNavigation> {
                 ),
               ),
               Flexible(
-                child: _buildNavItem(3, Icons.center_focus_strong_rounded, 'Identify'),
+                child: _buildNavItem(
+                  3,
+                  Icons.center_focus_strong_rounded,
+                  'Identify',
+                ),
               ),
             ],
           ),
@@ -251,7 +268,9 @@ class _MainNavigationState extends State<MainNavigation> {
                             minHeight: 16,
                           ),
                           child: Text(
-                            provider.pendingCount > 9 ? '9+' : '${provider.pendingCount}',
+                            provider.pendingCount > 9
+                                ? '9+'
+                                : '${provider.pendingCount}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 9,
@@ -304,12 +323,14 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
   Future<Uint8List?> _compressImage(File imageFile) async {
     try {
       final originalBytes = await imageFile.readAsBytes();
-      debugPrint('📷 Original image size: ${(originalBytes.length / 1024).toStringAsFixed(2)} KB');
-      
+      debugPrint(
+        '📷 Original image size: ${(originalBytes.length / 1024).toStringAsFixed(2)} KB',
+      );
+
       // Compress image - target quality to get ~500KB or less
       var quality = 85;
       Uint8List? compressedBytes;
-      
+
       // Try compression with decreasing quality until we get under 500KB
       while (quality > 20) {
         compressedBytes = await FlutterImageCompress.compressWithList(
@@ -318,19 +339,21 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
           minWidth: 800,
           minHeight: 800,
         );
-        
+
         final compressedSize = compressedBytes.length;
-        debugPrint('📦 Compressed to ${(compressedSize / 1024).toStringAsFixed(2)} KB at quality $quality');
-        
+        debugPrint(
+          '📦 Compressed to ${(compressedSize / 1024).toStringAsFixed(2)} KB at quality $quality',
+        );
+
         // Base64 encoding increases size by ~33%, so we need compressed size < 500KB
         // to ensure base64 size < 670KB (well under 1MB Firestore limit)
         if (compressedSize < 500 * 1024) {
           break;
         }
-        
+
         quality -= 15;
       }
-      
+
       return compressedBytes;
     } catch (e) {
       debugPrint('❌ Error compressing image: $e');
@@ -343,9 +366,9 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No camera available')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('No camera available')));
         }
         return;
       }
@@ -366,7 +389,9 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
 
                 try {
                   // Call PlantID API
-                  final result = await _plantIdService.identifyPlant(base64Image);
+                  final result = await _plantIdService.identifyPlant(
+                    base64Image,
+                  );
 
                   if (mounted) {
                     setState(() {
@@ -391,9 +416,9 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error opening scanner: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error opening scanner: $e')));
     }
   }
 
@@ -450,8 +475,8 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
 
     final topMatch = result.suggestions.first;
     // Use common name if available, otherwise use plantName (scientific name)
-    final displayName = topMatch.commonNames.isNotEmpty 
-        ? topMatch.commonNames.first 
+    final displayName = topMatch.commonNames.isNotEmpty
+        ? topMatch.commonNames.first
         : topMatch.plantName;
     final scientificName = topMatch.plantName;
     final probability = (topMatch.probability * 100).toStringAsFixed(1);
@@ -522,7 +547,9 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                     context: context,
                     barrierDismissible: false,
                     builder: (context) => const Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
                     ),
                   );
 
@@ -531,14 +558,17 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                     Position? position;
                     try {
                       // Check location permission status
-                      LocationPermission permission = await Geolocator.checkPermission();
-                      
+                      LocationPermission permission =
+                          await Geolocator.checkPermission();
+
                       if (permission == LocationPermission.denied) {
                         // Request permission
                         permission = await Geolocator.requestPermission();
-                        debugPrint('🔐 Requested location permission: $permission');
+                        debugPrint(
+                          '🔐 Requested location permission: $permission',
+                        );
                       }
-                      
+
                       if (permission == LocationPermission.deniedForever) {
                         debugPrint('❌ Location permission denied forever');
                         if (mounted) {
@@ -546,7 +576,9 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                           Navigator.pop(context); // Close result dialog
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Location permission is permanently denied. Please enable it in Settings.'),
+                              content: Text(
+                                'Location permission is permanently denied. Please enable it in Settings.',
+                              ),
                               backgroundColor: Colors.red,
                               duration: Duration(seconds: 4),
                             ),
@@ -554,7 +586,7 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                         }
                         return;
                       }
-                      
+
                       if (permission == LocationPermission.denied) {
                         debugPrint('❌ Location permission denied');
                         if (mounted) {
@@ -562,19 +594,23 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                           Navigator.pop(context); // Close result dialog
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Location permission is required to save plant location.'),
+                              content: Text(
+                                'Location permission is required to save plant location.',
+                              ),
                               backgroundColor: Colors.red,
                             ),
                           );
                         }
                         return;
                       }
-                      
+
                       // Permission granted, get location
                       position = await Geolocator.getCurrentPosition(
                         desiredAccuracy: LocationAccuracy.high,
                       );
-                      debugPrint('📍 Location obtained: ${position.latitude}, ${position.longitude}');
+                      debugPrint(
+                        '📍 Location obtained: ${position.latitude}, ${position.longitude}',
+                      );
                     } catch (e) {
                       debugPrint('❌ Error getting location: $e');
                       if (mounted) {
@@ -582,7 +618,9 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                         Navigator.pop(context); // Close result dialog
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Failed to get location. Please enable location services.'),
+                            content: Text(
+                              'Failed to get location. Please enable location services.',
+                            ),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -596,7 +634,7 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                       try {
                         // Compress the image to ensure it's under 1MB in Firestore
                         final compressedBytes = await _compressImage(_image!);
-                        
+
                         if (compressedBytes == null) {
                           debugPrint('❌ Failed to compress image');
                           if (mounted) {
@@ -611,15 +649,19 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                           }
                           return;
                         }
-                        
+
                         // Convert to base64
                         imageBase64 = base64Encode(compressedBytes);
-                        final base64SizeKB = (imageBase64.length / 1024).toStringAsFixed(2);
+                        final base64SizeKB = (imageBase64.length / 1024)
+                            .toStringAsFixed(2);
                         debugPrint('✅ Base64 encoded size: $base64SizeKB KB');
-                        
+
                         // Double check it's under 1MB
-                        if (imageBase64.length > 900 * 1024) { // 900KB safety margin
-                          debugPrint('⚠️ Image still too large after compression, using placeholder');
+                        if (imageBase64.length > 900 * 1024) {
+                          // 900KB safety margin
+                          debugPrint(
+                            '⚠️ Image still too large after compression, using placeholder',
+                          );
                           imageBase64 = 'placeholder';
                         }
                       } catch (e) {
@@ -663,7 +705,9 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                     );
 
                     if (mounted) {
-                      context.read<UserProvider>().addToCollection(collectedPlant);
+                      context.read<UserProvider>().addToCollection(
+                        collectedPlant,
+                      );
                       debugPrint('✅ Added to local collection');
                     }
 
@@ -672,7 +716,7 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                       final userProvider = context.read<UserProvider>();
                       final walletProvider = context.read<WalletProvider>();
                       final treasureService = TreasureService();
-                      
+
                       // Ensure userId is not empty
                       final userId = userProvider.deviceId;
                       if (userId.isEmpty) {
@@ -682,24 +726,31 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                           Navigator.pop(context); // Close result dialog
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Failed to save: User ID not found. Please restart the app.'),
+                              content: Text(
+                                'Failed to save: User ID not found. Please restart the app.',
+                              ),
                               backgroundColor: Colors.red,
                             ),
                           );
                         }
                         return;
                       }
-                      
+
                       debugPrint('💾 Saving treasure to Firebase...');
                       debugPrint('   User ID: $userId');
                       debugPrint('   Common Name: $displayName');
                       debugPrint('   Scientific Name: $scientificName');
-                      debugPrint('   Location: ${position.latitude}, ${position.longitude}');
-                      debugPrint('   Wallet: ${walletProvider.walletAddress ?? "device_$userId"}');
-                      
+                      debugPrint(
+                        '   Location: ${position.latitude}, ${position.longitude}',
+                      );
+                      debugPrint(
+                        '   Wallet: ${walletProvider.walletAddress ?? "device_$userId"}',
+                      );
+
                       // Get wallet address (use device ID if no wallet connected)
-                      final walletAddress = walletProvider.walletAddress ?? 'device_$userId';
-                      
+                      final walletAddress =
+                          walletProvider.walletAddress ?? 'device_$userId';
+
                       final result = await treasureService.saveTreasure(
                         plantName: scientificName,
                         commonName: displayName,
@@ -707,26 +758,34 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                         longitude: position.longitude,
                         imageBase64: imageBase64,
                         userId: userId,
-                        userName: userProvider.userName.isEmpty ? 'Explorer' : userProvider.userName,
+                        userName: userProvider.userName.isEmpty
+                            ? 'Explorer'
+                            : userProvider.userName,
                         levelId: 0, // No riddle level for manual identification
                         confidence: topMatch.probability,
                         description: description,
                         walletAddress: walletAddress,
                       );
-                      
+
                       debugPrint('✅ Treasure saved successfully to Firebase!');
-                      
+
                       if (mounted) {
                         Navigator.pop(context); // Close loading dialog
                         Navigator.pop(context); // Close result dialog
-                        
+
                         // Show appropriate message based on verification and NFT status
                         if (result.autoVerified && result.nftMinted) {
-                          _showNFTMintedDialog(context, displayName, result.nftRarity ?? 'NFT');
+                          _showNFTMintedDialog(
+                            context,
+                            displayName,
+                            result.nftRarity ?? 'NFT',
+                          );
                         } else if (result.autoVerified) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('$displayName verified and added to collection!'),
+                              content: Text(
+                                '$displayName verified and added to collection!',
+                              ),
                               backgroundColor: AppColors.success,
                               duration: const Duration(seconds: 3),
                             ),
@@ -734,7 +793,9 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('$displayName submitted for community verification (${(topMatch.probability * 100).toStringAsFixed(0)}% confidence)'),
+                              content: Text(
+                                '$displayName submitted for community verification (${(topMatch.probability * 100).toStringAsFixed(0)}% confidence)',
+                              ),
                               backgroundColor: Colors.orange,
                               duration: const Duration(seconds: 4),
                             ),
@@ -744,11 +805,11 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                     } catch (e, stackTrace) {
                       debugPrint('❌ Error saving treasure to Firebase: $e');
                       debugPrint('Stack trace: $stackTrace');
-                      
+
                       if (mounted) {
                         Navigator.pop(context); // Close loading dialog
                         Navigator.pop(context); // Close result dialog
-                        
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Failed to save: $e'),
@@ -786,28 +847,38 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
   }
 
   /// Show NFT minted success dialog with fancy animation
-  Future<void> _showNFTMintedDialog(BuildContext context, String plantName, String rarity) async {
+  Future<void> _showNFTMintedDialog(
+    BuildContext context,
+    String plantName,
+    String rarity,
+  ) async {
     // Parse rarity to CardRarity enum
-    final cardRarity = CardRarityExtension.fromString(rarity.replaceAll(' ', ''));
-    
+    final cardRarity = CardRarityExtension.fromString(
+      rarity.replaceAll(' ', ''),
+    );
+
     // Create a completed future since NFT was already minted
-    final completedMintFuture = Future<MintResult>.value(MintResult(
-      success: true,
-      nftCard: NFTCard(
-        ownerWallet: 'device_${context.read<UserProvider>().deviceId}',
-        plantName: plantName,
-        rarity: cardRarity,
-        nftMint: 'auto_minted',
-        mintedAt: DateTime.now(),
+    final completedMintFuture = Future<MintResult>.value(
+      MintResult(
+        success: true,
+        nftCard: NFTCard(
+          ownerWallet: 'device_${context.read<UserProvider>().deviceId}',
+          plantName: plantName,
+          rarity: cardRarity,
+          nftMint: 'auto_minted',
+          mintedAt: DateTime.now(),
+        ),
+        message: 'NFT auto-minted!',
       ),
-      message: 'NFT auto-minted!',
-    ));
+    );
 
     await MintProgressDialog.show(
       context: context,
       plantName: plantName,
       scientificName: null,
-      imageBase64: _image != null ? base64Encode(await _image!.readAsBytes()) : null,
+      imageBase64: _image != null
+          ? base64Encode(await _image!.readAsBytes())
+          : null,
       habitat: null,
       region: null,
       waterCare: null,
@@ -989,7 +1060,9 @@ class _IdentifyScannerScreenState extends State<_IdentifyScannerScreen> {
   }
 
   Future<void> _captureImage() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized || _isCapturing) {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _isCapturing) {
       return;
     }
 
@@ -1000,7 +1073,7 @@ class _IdentifyScannerScreenState extends State<_IdentifyScannerScreen> {
     try {
       final XFile imageFile = await _cameraController!.takePicture();
       final file = File(imageFile.path);
-      
+
       if (mounted) {
         Navigator.of(context).pop();
         widget.onImageCaptured(file);
@@ -1044,11 +1117,7 @@ class _IdentifyScannerScreenState extends State<_IdentifyScannerScreen> {
             ),
 
           // Overlay with scanning frame
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _ScanFramePainter(),
-            ),
-          ),
+          Positioned.fill(child: CustomPaint(painter: _ScanFramePainter())),
 
           // Top bar
           SafeArea(
@@ -1068,7 +1137,10 @@ class _IdentifyScannerScreenState extends State<_IdentifyScannerScreen> {
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(20),
@@ -1128,8 +1200,9 @@ class _IdentifyScannerScreenState extends State<_IdentifyScannerScreen> {
                         color: _isCapturing ? Colors.grey : AppColors.primary,
                         boxShadow: [
                           BoxShadow(
-                            color: (_isCapturing ? Colors.grey : AppColors.primary)
-                                .withValues(alpha: 0.5),
+                            color:
+                                (_isCapturing ? Colors.grey : AppColors.primary)
+                                    .withValues(alpha: 0.5),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
@@ -1218,7 +1291,9 @@ class _LiveScannerScreenState extends State<_LiveScannerScreen> {
   }
 
   Future<void> _captureImage() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized || _isCapturing) {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _isCapturing) {
       return;
     }
 
@@ -1229,7 +1304,7 @@ class _LiveScannerScreenState extends State<_LiveScannerScreen> {
     try {
       final XFile imageFile = await _cameraController!.takePicture();
       final file = File(imageFile.path);
-      
+
       if (mounted) {
         Navigator.of(context).pop();
         widget.onImageCaptured(file);
@@ -1275,11 +1350,7 @@ class _LiveScannerScreenState extends State<_LiveScannerScreen> {
             ),
 
           // Overlay with scanning frame - reduced opacity
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _ScanFramePainter(),
-            ),
-          ),
+          Positioned.fill(child: CustomPaint(painter: _ScanFramePainter())),
 
           // Top bar
           SafeArea(
@@ -1299,7 +1370,10 @@ class _LiveScannerScreenState extends State<_LiveScannerScreen> {
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(20),
@@ -1359,8 +1433,9 @@ class _LiveScannerScreenState extends State<_LiveScannerScreen> {
                         color: _isCapturing ? Colors.grey : AppColors.primary,
                         boxShadow: [
                           BoxShadow(
-                            color: (_isCapturing ? Colors.grey : AppColors.primary)
-                                .withValues(alpha: 0.5),
+                            color:
+                                (_isCapturing ? Colors.grey : AppColors.primary)
+                                    .withValues(alpha: 0.5),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
@@ -1477,12 +1552,18 @@ class _ScanFramePainter extends CustomPainter {
 
     // Bottom-right corner
     canvas.drawLine(
-      Offset(scanAreaLeft + scanAreaWidth - cornerLength, scanAreaTop + scanAreaHeight),
+      Offset(
+        scanAreaLeft + scanAreaWidth - cornerLength,
+        scanAreaTop + scanAreaHeight,
+      ),
       Offset(scanAreaLeft + scanAreaWidth, scanAreaTop + scanAreaHeight),
       cornerPaint,
     );
     canvas.drawLine(
-      Offset(scanAreaLeft + scanAreaWidth, scanAreaTop + scanAreaHeight - cornerLength),
+      Offset(
+        scanAreaLeft + scanAreaWidth,
+        scanAreaTop + scanAreaHeight - cornerLength,
+      ),
       Offset(scanAreaLeft + scanAreaWidth, scanAreaTop + scanAreaHeight),
       cornerPaint,
     );

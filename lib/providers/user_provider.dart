@@ -39,10 +39,7 @@ class UserProvider extends ChangeNotifier {
 
   /// Set coins and leaves from Firebase
   void setCoinsAndLeaves(int coins, int leaves) {
-    _progress = _progress.copyWith(
-      coins: coins,
-      leaves: leaves,
-    );
+    _progress = _progress.copyWith(coins: coins, leaves: leaves);
     notifyListeners();
   }
 

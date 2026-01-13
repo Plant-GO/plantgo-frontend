@@ -11,7 +11,7 @@ class BackendUrlProvider {
     if (_cachedUrl != null) {
       return _cachedUrl!;
     }
-    
+
     _cachedUrl = await BackendConfigService.getBackendUrl();
     return _cachedUrl!;
   }

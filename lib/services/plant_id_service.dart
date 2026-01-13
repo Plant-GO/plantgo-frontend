@@ -23,10 +23,7 @@ class PlantIdService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl${AppConstants.plantIdIdentifyEndpoint}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Api-Key': apiKey,
-        },
+        headers: {'Content-Type': 'application/json', 'Api-Key': apiKey},
         body: jsonEncode({
           'images': [imageBase64], // Don't include data URI prefix
           'latitude': null,
@@ -38,17 +35,21 @@ class PlantIdService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final result = PlantIdResult.fromJson(data);
-        
+
         // If we have an access token, fetch additional details
         final accessToken = data['access_token'];
         if (accessToken != null && result.suggestions.isNotEmpty) {
           return await _fetchPlantDetails(accessToken, result);
         }
-        
+
         return result;
       } else {
-        debugPrint('Plant.ID API Error ${response.statusCode}: ${response.body}');
-        throw PlantIdException('API error: ${response.statusCode} - ${response.body}');
+        debugPrint(
+          'Plant.ID API Error ${response.statusCode}: ${response.body}',
+        );
+        throw PlantIdException(
+          'API error: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       if (e is PlantIdException) rethrow;
@@ -57,12 +58,17 @@ class PlantIdService {
   }
 
   /// Fetch additional plant details including common names
-  Future<PlantIdResult> _fetchPlantDetails(String accessToken, PlantIdResult initialResult) async {
+  Future<PlantIdResult> _fetchPlantDetails(
+    String accessToken,
+    PlantIdResult initialResult,
+  ) async {
     final apiKey = EnvConfig.plantIdApiKey;
-    
+
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/identification/$accessToken?details=common_names,taxonomy,description'),
+        Uri.parse(
+          '$_baseUrl/identification/$accessToken?details=common_names,taxonomy,description',
+        ),
         headers: {'Api-Key': apiKey},
       );
 
@@ -74,7 +80,7 @@ class PlantIdService {
       // If details fetch fails, return initial result
       debugPrint('Failed to fetch plant details: $e');
     }
-    
+
     return initialResult;
   }
 
@@ -98,13 +104,13 @@ class PlantIdService {
 
     final topSuggestion = result.suggestions.first;
     final allNames = [...topSuggestion.commonNames, topSuggestion.plantName];
-    
+
     // Check if any identified name matches expected aliases
     bool isMatch = false;
     for (final name in allNames) {
       final lowerName = name.toLowerCase();
       for (final alias in expectedAliases) {
-        if (lowerName.contains(alias.toLowerCase()) || 
+        if (lowerName.contains(alias.toLowerCase()) ||
             alias.toLowerCase().contains(lowerName)) {
           isMatch = true;
           break;
@@ -154,7 +160,10 @@ class PlantIdResult {
   }
 
   /// Parse detailed response with common names
-  factory PlantIdResult.fromDetailedJson(Map<String, dynamic> json, PlantIdResult initial) {
+  factory PlantIdResult.fromDetailedJson(
+    Map<String, dynamic> json,
+    PlantIdResult initial,
+  ) {
     final result = json['result'] ?? json;
     final classification = result['classification'] ?? {};
     final suggestions =
@@ -206,7 +215,7 @@ class PlantSuggestion {
     // Extract common names from details if available
     final details = json['details'] ?? {};
     final commonNames = details['common_names'] ?? json['common_names'] ?? [];
-    
+
     return PlantSuggestion(
       plantName: json['name'] ?? '',
       probability: (json['probability'] ?? 0).toDouble(),
@@ -218,13 +227,13 @@ class PlantSuggestion {
 
   factory PlantSuggestion.fromDetailedJson(Map<String, dynamic> json) {
     final details = json['details'] ?? {};
-    
+
     // Get common_names from details object
     List<String> commonNames = [];
     if (details['common_names'] != null) {
       commonNames = List<String>.from(details['common_names']);
     }
-    
+
     return PlantSuggestion(
       plantName: json['name'] ?? '',
       probability: (json['probability'] ?? 0).toDouble(),

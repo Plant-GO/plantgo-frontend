@@ -15,16 +15,11 @@ class UserService {
 
       if (doc.exists) {
         // Update last active time
-        await docRef.update({
-          'lastActive': Timestamp.now(),
-        });
+        await docRef.update({'lastActive': Timestamp.now()});
         return AppUser.fromFirestore(doc);
       } else {
         // Create new user
-        final newUser = AppUser(
-          userId: deviceId,
-          userName: userName,
-        );
+        final newUser = AppUser(userId: deviceId, userName: userName);
         await docRef.set(newUser.toFirestore());
         print('✅ Created new user: $deviceId');
         return newUser;
@@ -38,7 +33,10 @@ class UserService {
   /// Get user by ID
   Future<AppUser?> getUser(String userId) async {
     try {
-      final doc = await _firestore.collection(_usersCollection).doc(userId).get();
+      final doc = await _firestore
+          .collection(_usersCollection)
+          .doc(userId)
+          .get();
       if (doc.exists) {
         return AppUser.fromFirestore(doc);
       }
@@ -165,7 +163,7 @@ class UserService {
   /// Update user's name
   Future<void> updateUserName(String deviceId, String newName) async {
     final userRef = _firestore.collection(_usersCollection).doc(deviceId);
-    
+
     await userRef.update({
       'userName': newName,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -182,7 +180,7 @@ class UserService {
         .collection('treasures')
         .where('userId', isEqualTo: deviceId)
         .get();
-    
+
     return treasures.docs.length;
   }
 }

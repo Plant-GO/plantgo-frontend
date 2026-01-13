@@ -6,7 +6,7 @@ import '../services/nft_minting_service.dart';
 import '../services/blockchain_nft_service.dart';
 
 /// Provider for NFT collection state and minting operations.
-/// 
+///
 /// For MVP: Uses Firestore-backed NFT minting service
 /// For Production: Switch to NFTApiService with backend server
 class NFTProvider extends ChangeNotifier {
@@ -43,10 +43,13 @@ class NFTProvider extends ChangeNotifier {
   int get uniquePlants => _nfts.map((n) => n.plantName).toSet().length;
 
   /// Legendary NFTs (AuroraSeed + PrimordialRelic)
-  int get legendaryCount => _nfts.where((n) => 
-    n.rarity == CardRarity.auroraSeed || 
-    n.rarity == CardRarity.primordialRelic
-  ).length;
+  int get legendaryCount => _nfts
+      .where(
+        (n) =>
+            n.rarity == CardRarity.auroraSeed ||
+            n.rarity == CardRarity.primordialRelic,
+      )
+      .length;
 
   /// Loading state
   bool _isLoading = false;
@@ -75,14 +78,14 @@ class NFTProvider extends ChangeNotifier {
   /// Subscribe to real-time NFT updates
   void _subscribeToNFTs() {
     if (_walletAddress == null) return;
-    
+
     _nftSubscription?.cancel();
-    _nftSubscription = _mintingService
-        .streamUserNFTs(_walletAddress!)
-        .listen((nfts) {
-          _nfts = nfts;
-          notifyListeners();
-        });
+    _nftSubscription = _mintingService.streamUserNFTs(_walletAddress!).listen((
+      nfts,
+    ) {
+      _nfts = nfts;
+      notifyListeners();
+    });
   }
 
   /// Load NFTs for a wallet address (from Firestore + blockchain)
@@ -99,12 +102,15 @@ class NFTProvider extends ChangeNotifier {
       // Load from Firestore (app's database)
       _nfts = await _mintingService.getUserNFTs(walletAddress);
       debugPrint('📦 NFTProvider: Found ${_nfts.length} NFTs');
-      _nfts.sort((a, b) => (b.mintedAt ?? DateTime.now())
-          .compareTo(a.mintedAt ?? DateTime.now()));
-      
+      _nfts.sort(
+        (a, b) => (b.mintedAt ?? DateTime.now()).compareTo(
+          a.mintedAt ?? DateTime.now(),
+        ),
+      );
+
       // Start listening for real-time updates
       _subscribeToNFTs();
-      
+
       // Also fetch from blockchain in background
       _fetchBlockchainNFTs(walletAddress);
     } catch (e) {
@@ -120,7 +126,8 @@ class NFTProvider extends ChangeNotifier {
   void _safeNotifyListeners() {
     // Check if we're in a valid state to notify
     // Using scheduleMicrotask ensures we're not in the middle of a build
-    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
       // We're during a build, schedule for after
       SchedulerBinding.instance.addPostFrameCallback((_) {
         notifyListeners();
@@ -136,7 +143,9 @@ class NFTProvider extends ChangeNotifier {
     try {
       debugPrint('NFTProvider: Fetching blockchain NFTs for $walletAddress');
       _blockchainNFTs = await _blockchainService.getWalletNFTs(walletAddress);
-      debugPrint('NFTProvider: Found ${_blockchainNFTs.length} blockchain NFTs');
+      debugPrint(
+        'NFTProvider: Found ${_blockchainNFTs.length} blockchain NFTs',
+      );
       _safeNotifyListeners();
     } catch (e) {
       debugPrint('NFTProvider: Error fetching blockchain NFTs: $e');
@@ -168,14 +177,16 @@ class NFTProvider extends ChangeNotifier {
     String? scientificName,
     String? treasureId,
   }) async {
-    return _performMint(() => _mintingService.mintPlantDiscoveryNFT(
-      walletAddress: walletAddress,
-      plantName: plantName,
-      isNewSpecies: isNewSpecies,
-      imageUrl: imageUrl,
-      scientificName: scientificName,
-      treasureId: treasureId,
-    ));
+    return _performMint(
+      () => _mintingService.mintPlantDiscoveryNFT(
+        walletAddress: walletAddress,
+        plantName: plantName,
+        isNewSpecies: isNewSpecies,
+        imageUrl: imageUrl,
+        scientificName: scientificName,
+        treasureId: treasureId,
+      ),
+    );
   }
 
   /// Mint a quiz NFT
@@ -184,20 +195,21 @@ class NFTProvider extends ChangeNotifier {
     required String plantName,
     required bool isWinner,
   }) async {
-    return _performMint(() => _mintingService.mintQuizNFT(
-      walletAddress: walletAddress,
-      plantName: plantName,
-      isWinner: isWinner,
-    ));
+    return _performMint(
+      () => _mintingService.mintQuizNFT(
+        walletAddress: walletAddress,
+        plantName: plantName,
+        isWinner: isWinner,
+      ),
+    );
   }
 
   /// Common minting logic
-  Future<MintResult> _performMint(Future<MintResult> Function() mintFunction) async {
+  Future<MintResult> _performMint(
+    Future<MintResult> Function() mintFunction,
+  ) async {
     if (isMinting) {
-      return MintResult(
-        success: false,
-        message: 'Minting already in progress',
-      );
+      return MintResult(success: false, message: 'Minting already in progress');
     }
 
     _mintingState = MintingState.minting;
@@ -226,10 +238,7 @@ class NFTProvider extends ChangeNotifier {
       _errorMessage = e.toString();
       notifyListeners();
 
-      return MintResult(
-        success: false,
-        message: 'Minting failed: $e',
-      );
+      return MintResult(success: false, message: 'Minting failed: $e');
     }
   }
 
@@ -308,13 +317,13 @@ class NFTProvider extends ChangeNotifier {
 enum MintingState {
   /// No minting in progress
   idle,
-  
+
   /// Currently minting
   minting,
-  
+
   /// Minting succeeded
   success,
-  
+
   /// Minting failed
   error,
 }

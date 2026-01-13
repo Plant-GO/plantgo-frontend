@@ -1,26 +1,26 @@
 /// Card Rarity types matching the Solana program's CardRarityInstruction enum.
-/// 
+///
 /// These must match the backend exactly for proper NFT minting.
 /// Each card type has a corresponding u8 value (0-6) used in Borsh serialization.
 enum CardRarity {
   /// Common card - default rarity
   genesisFragment,
-  
+
   /// Rare card - awarded when rare count < 50
   astralShard,
-  
+
   /// Epic card - awarded when epic count < 20
   mythicCrest,
-  
+
   /// Mastery card - Quiz Winner reward
   ascendantSeal,
-  
+
   /// Knowledge card - Quiz Participation reward
   codexOfInsight,
-  
+
   /// First discovery of a known species on-chain
   primordialRelic,
-  
+
   /// First ever discovery of a new species on-chain
   auroraSeed,
 }

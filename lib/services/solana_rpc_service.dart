@@ -5,7 +5,7 @@ import '../blockchain/solana_config.dart';
 import '../blockchain/models/plant_counter.dart';
 
 /// Service for direct Solana RPC calls (MVP/Testing mode)
-/// 
+///
 /// This service interacts directly with Solana devnet via JSON-RPC.
 /// For production, some operations would need a backend server
 /// with the mintAuthority keypair for signing transactions.
@@ -16,7 +16,7 @@ class SolanaRpcService {
   SolanaRpcService._internal();
 
   final http.Client _client = http.Client();
-  
+
   // RPC request ID counter
   int _requestId = 0;
 
@@ -49,7 +49,7 @@ class SolanaRpcService {
       }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      
+
       if (data.containsKey('error')) {
         final error = data['error'];
         throw SolanaRpcException(
@@ -136,7 +136,7 @@ class SolanaRpcService {
 
   /// Derive PlantCounter PDA address
   /// Matches the Solana program's get_plant_counter_address function
-  /// 
+  ///
   /// Seeds: ["plant_counter", plant_name_bytes]
   String derivePlantCounterPda(String plantName) {
     // For MVP, we'll use a simplified address derivation
@@ -148,7 +148,7 @@ class SolanaRpcService {
 
   /// Derive OwnershipRecord PDA address
   /// Matches the Solana program's get_ownership_record_address function
-  /// 
+  ///
   /// Seeds: ["ownership", owner_wallet_bytes, plant_name_bytes, card_type_u8]
   String deriveOwnershipRecordPda(
     String ownerWallet,
@@ -166,11 +166,11 @@ class SolanaRpcService {
       // For MVP, we'll check Firestore instead of on-chain
       // In production, this would decode the on-chain PDA data
       debugPrint('🔍 Checking PlantCounter for: $plantName');
-      
+
       // The PDA address would be derived and queried
       // final pdaAddress = derivePlantCounterPda(plantName);
       // final accountInfo = await getAccountInfo(pdaAddress);
-      
+
       // For MVP, return null to indicate this is handled by Firestore
       return null;
     } catch (e) {
@@ -214,9 +214,10 @@ class SolanaRpcService {
             debugPrint('❌ Transaction failed: ${status['err']}');
             return false;
           }
-          
+
           final confirmations = status['confirmations'];
-          if (confirmations != null || status['confirmationStatus'] == 'finalized') {
+          if (confirmations != null ||
+              status['confirmationStatus'] == 'finalized') {
             debugPrint('✅ Transaction confirmed: $signature');
             return true;
           }
@@ -268,5 +269,6 @@ class SolanaRpcException implements Exception {
   SolanaRpcException(this.message, {this.code});
 
   @override
-  String toString() => 'SolanaRpcException: $message${code != null ? ' (code: $code)' : ''}';
+  String toString() =>
+      'SolanaRpcException: $message${code != null ? ' (code: $code)' : ''}';
 }

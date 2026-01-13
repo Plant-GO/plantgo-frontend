@@ -8,7 +8,6 @@ import '../widgets/level_node.dart';
 import '../widgets/stat_pill.dart';
 import 'level_detail_screen.dart';
 import 'backend_config_screen.dart';
-import 'dart:math' as math;
 
 /// Course Map Screen - Level progression with curved path
 /// Matches the design mockup with scrollable level path and swervy connections
@@ -85,16 +84,18 @@ class CourseMapScreen extends StatelessWidget {
   Widget _buildLevelPath(BuildContext context) {
     return Consumer<CourseProvider>(
       builder: (context, courseProvider, child) {
-        debugPrint('🔄 CourseMapScreen: Building with ${courseProvider.levels.length} levels');
-        
+        debugPrint(
+          '🔄 CourseMapScreen: Building with ${courseProvider.levels.length} levels',
+        );
+
         if (courseProvider.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
-        
+
         final levels = courseProvider.levels;
-        final completedCount = levels.where((l) => l.status == LevelStatus.completed).length;
+        final completedCount = levels
+            .where((l) => l.status == LevelStatus.completed)
+            .length;
         debugPrint('✅ CourseMapScreen: $completedCount completed levels');
 
         return LayoutBuilder(
@@ -102,69 +103,71 @@ class CourseMapScreen extends StatelessWidget {
             final width = constraints.maxWidth;
 
             return SingleChildScrollView(
-          reverse: true, // Start from bottom (Level 1)
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          child: SizedBox(
-            width: width,
-            height: levels.length * 140.0 + 60,
-            child: Stack(
-              children: [
-                // Decorative elements
-                _buildDecorations(context),
+              reverse: true, // Start from bottom (Level 1)
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: SizedBox(
+                width: width,
+                height: levels.length * 140.0 + 60,
+                child: Stack(
+                  children: [
+                    // Decorative elements
+                    _buildDecorations(context),
 
-                // Curved path connecting all levels
-                CustomPaint(
-                  size: Size(width, levels.length * 140.0 + 60),
-                  painter: _CurvedPathPainter(
-                    levelCount: levels.length,
-                    levels: levels,
-                    width: width,
-                  ),
-                ),
-
-                // Level nodes
-                ...List.generate(levels.length, (index) {
-                  final level =
-                      levels[levels.length -
-                          1 -
-                          index]; // Reverse for bottom-up
-                  final reverseIndex = levels.length - 1 - index;
-
-                  // Calculate positions to match the curved path
-                  final isLeft = reverseIndex.isEven;
-                  final xOffset = isLeft ? width * 0.25 : width * 0.75;
-                  final yOffset = index * 140.0 + 40;
-
-                  return Positioned(
-                    left: xOffset - 45, // Center the node (node is ~90px wide)
-                    top: yOffset,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (level.status == LevelStatus.active && !isLeft)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: _buildBuddyIcon(),
-                          ),
-                        GestureDetector(
-                          onTap: () => _openLevel(context, level),
-                          child: LevelNode(level: level),
-                        ),
-                        if (level.status == LevelStatus.active && isLeft)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: _buildBuddyIcon(),
-                          ),
-                      ],
+                    // Curved path connecting all levels
+                    CustomPaint(
+                      size: Size(width, levels.length * 140.0 + 60),
+                      painter: _CurvedPathPainter(
+                        levelCount: levels.length,
+                        levels: levels,
+                        width: width,
+                      ),
                     ),
-                  );
-                }),
-              ],
-            ),
-          ),
+
+                    // Level nodes
+                    ...List.generate(levels.length, (index) {
+                      final level =
+                          levels[levels.length -
+                              1 -
+                              index]; // Reverse for bottom-up
+                      final reverseIndex = levels.length - 1 - index;
+
+                      // Calculate positions to match the curved path
+                      final isLeft = reverseIndex.isEven;
+                      final xOffset = isLeft ? width * 0.25 : width * 0.75;
+                      final yOffset = index * 140.0 + 40;
+
+                      return Positioned(
+                        left:
+                            xOffset -
+                            45, // Center the node (node is ~90px wide)
+                        top: yOffset,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (level.status == LevelStatus.active && !isLeft)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: _buildBuddyIcon(),
+                              ),
+                            GestureDetector(
+                              onTap: () => _openLevel(context, level),
+                              child: LevelNode(level: level),
+                            ),
+                            if (level.status == LevelStatus.active && isLeft)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8),
+                                child: _buildBuddyIcon(),
+                              ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            );
+          },
         );
-      },
-    );
       },
     );
   }

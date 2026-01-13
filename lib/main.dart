@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
-import 'core/env/env_config.dart';
 import 'providers/course_provider.dart';
 import 'providers/map_provider.dart';
 import 'providers/user_provider.dart';
@@ -25,24 +24,25 @@ void main() async {
   await dotenv.load(fileName: '.env');
 
   // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Preload backend URL (caches it for faster first request)
   await BackendUrlProvider.getBackendUrl();
 
   // Check if user has completed onboarding
   final prefs = await SharedPreferences.getInstance();
-  final hasCompletedOnboarding = prefs.getBool('hasCompletedOnboarding') ?? false;
+  final hasCompletedOnboarding =
+      prefs.getBool('hasCompletedOnboarding') ?? false;
   final userName = prefs.getString('userName');
   final deviceId = prefs.getString('deviceId');
 
-  runApp(PlantGoApp(
-    hasCompletedOnboarding: hasCompletedOnboarding,
-    userName: userName,
-    deviceId: deviceId,
-  ));
+  runApp(
+    PlantGoApp(
+      hasCompletedOnboarding: hasCompletedOnboarding,
+      userName: userName,
+      deviceId: deviceId,
+    ),
+  );
 }
 
 class PlantGoApp extends StatelessWidget {
@@ -63,9 +63,11 @@ class PlantGoApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => CourseProvider()),
         ChangeNotifierProvider(create: (_) => MapProvider()),
-        ChangeNotifierProvider(create: (_) => UserProvider()
-          ..setUserName(userName ?? '')
-          ..setDeviceId(deviceId ?? '')),
+        ChangeNotifierProvider(
+          create: (_) => UserProvider()
+            ..setUserName(userName ?? '')
+            ..setDeviceId(deviceId ?? ''),
+        ),
         ChangeNotifierProvider(create: (_) => ScanProvider()),
         // Blockchain providers
         ChangeNotifierProvider(create: (_) => WalletProvider()..initialize()),
@@ -77,8 +79,8 @@ class PlantGoApp extends StatelessWidget {
         title: 'PlantGo',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: hasCompletedOnboarding 
-            ? const MainNavigation() 
+        home: hasCompletedOnboarding
+            ? const MainNavigation()
             : const WelcomeScreen(),
       ),
     );

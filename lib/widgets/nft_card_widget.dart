@@ -3,7 +3,7 @@ import 'package:shimmer/shimmer.dart';
 import '../blockchain/blockchain.dart';
 
 /// A beautiful NFT card widget displaying plant card information.
-/// 
+///
 /// Features rarity-based gradient backgrounds and optional shimmer effects.
 class NFTCardWidget extends StatelessWidget {
   final NFTCard nftCard;
@@ -23,7 +23,7 @@ class NFTCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final primaryColor = Color(nftCard.rarity.primaryColor);
     final secondaryColor = Color(nftCard.rarity.secondaryColor);
-    
+
     Widget cardContent = Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -58,14 +58,10 @@ class NFTCardWidget extends StatelessWidget {
                     if (!compact) _buildMintIndicator(),
                   ],
                 ),
-                
+
                 // Plant Image
-                Expanded(
-                  child: Center(
-                    child: _buildPlantImage(),
-                  ),
-                ),
-                
+                Expanded(child: Center(child: _buildPlantImage())),
+
                 // Bottom section
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,7 +77,7 @@ class NFTCardWidget extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
                     if (!compact && nftCard.scientificName != null) ...[
                       const SizedBox(height: 2),
                       Text(
@@ -95,7 +91,7 @@ class NFTCardWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                    
+
                     if (!compact) ...[
                       const SizedBox(height: 8),
                       _buildCardTypeName(),
@@ -170,11 +166,7 @@ class NFTCardWidget extends StatelessWidget {
         color: Colors.white.withOpacity(0.2),
         shape: BoxShape.circle,
       ),
-      child: const Icon(
-        Icons.verified,
-        color: Colors.white,
-        size: 16,
-      ),
+      child: const Icon(Icons.verified, color: Colors.white, size: 16),
     );
   }
 
@@ -211,11 +203,7 @@ class NFTCardWidget extends StatelessWidget {
   Widget _buildCardTypeName() {
     return Row(
       children: [
-        Icon(
-          _getCardIcon(),
-          color: Colors.white.withOpacity(0.9),
-          size: 14,
-        ),
+        Icon(_getCardIcon(), color: Colors.white.withOpacity(0.9), size: 14),
         const SizedBox(width: 4),
         Expanded(
           child: Text(
@@ -285,7 +273,7 @@ class NFTCardSkeleton extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              
+
               // Image skeleton
               Expanded(
                 child: Center(
@@ -299,7 +287,7 @@ class NFTCardSkeleton extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               // Title skeleton
               Container(
                 width: double.infinity,

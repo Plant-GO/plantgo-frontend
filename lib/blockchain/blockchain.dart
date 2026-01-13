@@ -1,5 +1,5 @@
 /// Blockchain models and types for PlantGO NFT integration.
-/// 
+///
 /// Export all blockchain-related models from this file.
 library;
 

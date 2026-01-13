@@ -6,7 +6,7 @@ import '../services/wallet_service.dart';
 import '../services/solana_rpc_service.dart';
 
 /// Provider for blockchain/NFT state management
-/// 
+///
 /// Handles:
 /// - Wallet connection state
 /// - NFT collection
@@ -59,7 +59,7 @@ class BlockchainProvider extends ChangeNotifier {
   Future<void> initialize() async {
     try {
       await _walletService.initialize();
-      
+
       // Check for cached wallet address
       final cachedAddress = await _walletService.getCachedWalletAddress();
       if (cachedAddress != null) {
@@ -95,13 +95,13 @@ class BlockchainProvider extends ChangeNotifier {
 
     try {
       final address = await _walletService.connect();
-      
+
       if (address != null) {
         _walletAddress = address;
         await _refreshBalance();
         _subscribeToNFTs();
         debugPrint('✅ Wallet connected: $address');
-        
+
         _isConnecting = false;
         notifyListeners();
         return true;
@@ -155,7 +155,7 @@ class BlockchainProvider extends ChangeNotifier {
         _walletAddress!,
         amount: amount,
       );
-      
+
       if (signature != null) {
         await _rpcService.confirmTransaction(signature);
         await _refreshBalance();
@@ -175,12 +175,12 @@ class BlockchainProvider extends ChangeNotifier {
     if (_walletAddress == null) return;
 
     _nftSubscription?.cancel();
-    _nftSubscription = _mintingService
-        .streamUserNFTs(_walletAddress!)
-        .listen((nfts) {
-          _nftCollection = nfts;
-          notifyListeners();
-        });
+    _nftSubscription = _mintingService.streamUserNFTs(_walletAddress!).listen((
+      nfts,
+    ) {
+      _nftCollection = nfts;
+      notifyListeners();
+    });
   }
 
   /// Load NFT collection
@@ -215,7 +215,7 @@ class BlockchainProvider extends ChangeNotifier {
   }
 
   /// Mint NFT for plant discovery
-  /// 
+  ///
   /// Called when:
   /// 1. Treasure is auto-verified (confidence >= 60%)
   /// 2. Community verification passes (4+ upvotes)
@@ -226,10 +226,7 @@ class BlockchainProvider extends ChangeNotifier {
     String? treasureId,
   }) async {
     if (_walletAddress == null) {
-      return MintResult(
-        success: false,
-        error: 'No wallet connected',
-      );
+      return MintResult(success: false, error: 'No wallet connected');
     }
 
     _isMinting = true;
@@ -262,10 +259,7 @@ class BlockchainProvider extends ChangeNotifier {
       _errorMessage = 'Minting failed: $e';
       _isMinting = false;
       notifyListeners();
-      return MintResult(
-        success: false,
-        error: 'Minting failed: $e',
-      );
+      return MintResult(success: false, error: 'Minting failed: $e');
     }
   }
 
@@ -275,10 +269,7 @@ class BlockchainProvider extends ChangeNotifier {
     required bool isWinner,
   }) async {
     if (_walletAddress == null) {
-      return MintResult(
-        success: false,
-        error: 'No wallet connected',
-      );
+      return MintResult(success: false, error: 'No wallet connected');
     }
 
     _isMinting = true;
@@ -301,10 +292,7 @@ class BlockchainProvider extends ChangeNotifier {
     } catch (e) {
       _isMinting = false;
       notifyListeners();
-      return MintResult(
-        success: false,
-        error: 'Quiz minting failed: $e',
-      );
+      return MintResult(success: false, error: 'Quiz minting failed: $e');
     }
   }
 
@@ -332,10 +320,13 @@ class BlockchainProvider extends ChangeNotifier {
 
   /// Get legendary NFT count
   int get legendaryCount {
-    return _nftCollection.where((n) => 
-      n.rarity == CardRarity.auroraSeed || 
-      n.rarity == CardRarity.primordialRelic
-    ).length;
+    return _nftCollection
+        .where(
+          (n) =>
+              n.rarity == CardRarity.auroraSeed ||
+              n.rarity == CardRarity.primordialRelic,
+        )
+        .length;
   }
 
   // ============ Cleanup ============

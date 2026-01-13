@@ -1,6 +1,4 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import '../core/theme/app_colors.dart';
 import '../services/backend_config_service.dart';
 
@@ -66,7 +64,7 @@ class _BackendConfigScreenState extends State<BackendConfigScreen> {
     if (success) {
       await BackendConfigService.saveBackendUrl(url);
       setState(() => _currentUrl = url);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -83,7 +81,7 @@ class _BackendConfigScreenState extends State<BackendConfigScreen> {
     await BackendConfigService.resetToDefault();
     await _loadCurrentUrl();
     _ipController.clear();
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -120,7 +118,9 @@ class _BackendConfigScreenState extends State<BackendConfigScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -165,7 +165,9 @@ class _BackendConfigScreenState extends State<BackendConfigScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryLight.withValues(alpha: 0.1),
+                            color: AppColors.primaryLight.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -202,7 +204,11 @@ class _BackendConfigScreenState extends State<BackendConfigScreen> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.blue.shade700,
+                              size: 20,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'How to connect',
@@ -247,10 +253,15 @@ class _BackendConfigScreenState extends State<BackendConfigScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _ipController,
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'e.g., 192.168.1.100 or 192.168.1.100:3001',
-                      prefixIcon: const Icon(Icons.computer, color: AppColors.primary),
+                      prefixIcon: const Icon(
+                        Icons.computer,
+                        color: AppColors.primary,
+                      ),
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
@@ -259,7 +270,10 @@ class _BackendConfigScreenState extends State<BackendConfigScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
                       ),
                       errorText: _errorMessage,
                     ),
@@ -285,8 +299,12 @@ class _BackendConfigScreenState extends State<BackendConfigScreen> {
                       child: Row(
                         children: [
                           Icon(
-                            _connectionStatus! ? Icons.check_circle : Icons.error,
-                            color: _connectionStatus! ? Colors.green : Colors.red,
+                            _connectionStatus!
+                                ? Icons.check_circle
+                                : Icons.error,
+                            color: _connectionStatus!
+                                ? Colors.green
+                                : Colors.red,
                             size: 20,
                           ),
                           const SizedBox(width: 8),

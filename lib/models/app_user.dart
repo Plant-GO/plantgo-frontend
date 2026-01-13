@@ -20,8 +20,8 @@ class AppUser {
     this.treasureIds = const [],
     DateTime? createdAt,
     DateTime? lastActive,
-  })  : createdAt = createdAt ?? DateTime.now(),
-        lastActive = lastActive ?? DateTime.now();
+  }) : createdAt = createdAt ?? DateTime.now(),
+       lastActive = lastActive ?? DateTime.now();
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -33,7 +33,8 @@ class AppUser {
       completedLevelIds: List<String>.from(data['completedLevelIds'] ?? []),
       treasureIds: List<String>.from(data['treasureIds'] ?? []),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      lastActive: (data['lastActive'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      lastActive:
+          (data['lastActive'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 

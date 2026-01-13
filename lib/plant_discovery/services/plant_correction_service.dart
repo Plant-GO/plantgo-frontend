@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/plant_correction.dart';
-import '../models/plant_counter.dart';  // For NFTRarity extension
+import '../models/plant_counter.dart'; // For NFTRarity extension
 import 'plant_discovery_service.dart';
 
 /// Service for handling plant identification corrections
 class PlantCorrectionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final PlantDiscoveryService _discoveryService = PlantDiscoveryService();
-  
+
   static const String _correctionsCollection = 'plant_corrections';
   static const String _treasuresCollection = 'treasures';
 
@@ -48,24 +48,38 @@ class PlantCorrectionService {
         .collection(_correctionsCollection)
         .add(correction.toFirestore());
 
-    print('PlantCorrectionService: Submitted correction ${docRef.id} for $originalPlantName -> $correctedPlantName');
-    
+    print(
+      'PlantCorrectionService: Submitted correction ${docRef.id} for $originalPlantName -> $correctedPlantName',
+    );
+
     return correction.copyWith(id: docRef.id);
   }
 
   /// Upvote a correction (agree with the new identification)
-  Future<PlantCorrection?> upvoteCorrection(String correctionId, String voterId) async {
+  Future<PlantCorrection?> upvoteCorrection(
+    String correctionId,
+    String voterId,
+  ) async {
     return await _vote(correctionId, voterId, isUpvote: true);
   }
 
   /// Downvote a correction (disagree with the new identification)
-  Future<PlantCorrection?> downvoteCorrection(String correctionId, String voterId) async {
+  Future<PlantCorrection?> downvoteCorrection(
+    String correctionId,
+    String voterId,
+  ) async {
     return await _vote(correctionId, voterId, isUpvote: false);
   }
 
-  Future<PlantCorrection?> _vote(String correctionId, String voterId, {required bool isUpvote}) async {
-    final docRef = _firestore.collection(_correctionsCollection).doc(correctionId);
-    
+  Future<PlantCorrection?> _vote(
+    String correctionId,
+    String voterId, {
+    required bool isUpvote,
+  }) async {
+    final docRef = _firestore
+        .collection(_correctionsCollection)
+        .doc(correctionId);
+
     return await _firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(docRef);
       if (!snapshot.exists) {
@@ -74,27 +88,33 @@ class PlantCorrectionService {
       }
 
       final correction = PlantCorrection.fromFirestore(snapshot);
-      
+
       // Check if already voted
       if (correction.hasVoted(voterId)) {
-        print('PlantCorrectionService: User $voterId already voted on $correctionId');
+        print(
+          'PlantCorrectionService: User $voterId already voted on $correctionId',
+        );
         return correction;
       }
 
       // Add vote
       final newVoterIds = [...correction.voterIds, voterId];
       final newUpvotes = isUpvote ? correction.upvotes + 1 : correction.upvotes;
-      final newDownvotes = isUpvote ? correction.downvotes : correction.downvotes + 1;
+      final newDownvotes = isUpvote
+          ? correction.downvotes
+          : correction.downvotes + 1;
 
       CorrectionStatus newStatus = correction.status;
       DateTime? verifiedAt;
 
       // Check thresholds
-      if (newUpvotes >= PlantCorrection.upvotesRequired && correction.status == CorrectionStatus.pending) {
+      if (newUpvotes >= PlantCorrection.upvotesRequired &&
+          correction.status == CorrectionStatus.pending) {
         newStatus = CorrectionStatus.approved;
         verifiedAt = DateTime.now();
         print('PlantCorrectionService: Correction $correctionId APPROVED!');
-      } else if (newDownvotes >= PlantCorrection.downvotesRequired && correction.status == CorrectionStatus.pending) {
+      } else if (newDownvotes >= PlantCorrection.downvotesRequired &&
+          correction.status == CorrectionStatus.pending) {
         newStatus = CorrectionStatus.rejected;
         verifiedAt = DateTime.now();
         print('PlantCorrectionService: Correction $correctionId REJECTED!');
@@ -126,45 +146,51 @@ class PlantCorrectionService {
   }
 
   /// Create a new treasure entry for the corrected plant
-  Future<void> _createCorrectedTreasure(PlantCorrection correction, Transaction transaction) async {
+  Future<void> _createCorrectedTreasure(
+    PlantCorrection correction,
+    Transaction transaction,
+  ) async {
     // First, check if this is a new species (never before seen in our system)
-    final isNewSpecies = await _discoveryService.isNewSpecies(correction.correctedPlantName);
-    
+    final isNewSpecies = await _discoveryService.isNewSpecies(
+      correction.correctedPlantName,
+    );
+
     // Determine the rarity for this plant
     final rarity = await _discoveryService.determineRarity(
       plantName: correction.correctedPlantName,
       isNewSpeciesDiscovery: isNewSpecies,
     );
-    
+
     final treasureDoc = _firestore.collection(_treasuresCollection).doc();
-    
+
     final treasureData = {
       'plantName': correction.correctedPlantName,
-      'originalPlantName': correction.originalPlantName,  // Keep track of what it was originally identified as
-      'confidence': 1.0,  // Community verified = 100% confidence
+      'originalPlantName': correction
+          .originalPlantName, // Keep track of what it was originally identified as
+      'confidence': 1.0, // Community verified = 100% confidence
       'imageBase64': correction.imageBase64,
       'latitude': correction.latitude,
       'longitude': correction.longitude,
       'discoveredAt': Timestamp.fromDate(correction.submittedAt),
       'verifiedAt': Timestamp.now(),
-      
+
       // Attribution
       'discoveredBy': correction.originalDiscoveredBy,
       'discoveredByName': correction.originalDiscoveredByName,
       'identifiedBy': correction.correctedBy,
       'identifiedByName': correction.correctedByName,
-      
+
       // Verification status
       'verificationStatus': 'verified',
       'isCommunityVerified': true,
       'isCorrectedIdentification': true,
       'originalCorrectionId': correction.id,
-      
+
       // NFT Rarity
       'nftRarity': rarity.name,
       'nftRarityDisplayName': rarity.displayName,
       'nftRarityColor': rarity.colorHex,
-      
+
       // Minting status
       'nftMinted': false,
       'nftPendingMint': true,
@@ -180,7 +206,9 @@ class PlantCorrectionService {
       discoveredBy: correction.originalDiscoveredBy,
     );
 
-    print('PlantCorrectionService: Created corrected treasure ${treasureDoc.id} with rarity ${rarity.displayName}');
+    print(
+      'PlantCorrectionService: Created corrected treasure ${treasureDoc.id} with rarity ${rarity.displayName}',
+    );
     print('  - Discovered by: ${correction.originalDiscoveredByName}');
     print('  - Identified by: ${correction.correctedByName}');
   }
@@ -192,9 +220,11 @@ class PlantCorrectionService {
         .where('status', isEqualTo: 'pending')
         .orderBy('submittedAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => PlantCorrection.fromFirestore(doc))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => PlantCorrection.fromFirestore(doc))
+              .toList(),
+        );
   }
 
   /// Get corrections submitted by a specific user
@@ -204,14 +234,19 @@ class PlantCorrectionService {
         .where('correctedBy', isEqualTo: userId)
         .orderBy('submittedAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => PlantCorrection.fromFirestore(doc))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => PlantCorrection.fromFirestore(doc))
+              .toList(),
+        );
   }
 
   /// Get a single correction by ID
   Future<PlantCorrection?> getCorrection(String correctionId) async {
-    final doc = await _firestore.collection(_correctionsCollection).doc(correctionId).get();
+    final doc = await _firestore
+        .collection(_correctionsCollection)
+        .doc(correctionId)
+        .get();
     if (!doc.exists) return null;
     return PlantCorrection.fromFirestore(doc);
   }
@@ -224,7 +259,7 @@ class PlantCorrectionService {
         .where('status', isEqualTo: 'pending')
         .limit(1)
         .get();
-    
+
     return query.docs.isNotEmpty;
   }
 
@@ -234,11 +269,11 @@ class PlantCorrectionService {
         .collection(_correctionsCollection)
         .where('correctedBy', isEqualTo: userId)
         .get();
-    
+
     int approved = 0;
     int rejected = 0;
     int pending = 0;
-    
+
     for (final doc in submitted.docs) {
       final status = doc.data()['status'] as String?;
       switch (status) {
@@ -252,7 +287,7 @@ class PlantCorrectionService {
           pending++;
       }
     }
-    
+
     return {
       'total': submitted.docs.length,
       'approved': approved,

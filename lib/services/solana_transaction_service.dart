@@ -6,26 +6,30 @@ import 'wallet_service.dart';
 import 'backend_url_provider.dart';
 
 /// Service for building and sending Solana transactions.
-/// 
+///
 /// This service handles:
 /// 1. Building transactions for NFT minting
 /// 2. Sending transactions to Phantom for signing
 /// 3. Broadcasting signed transactions to Solana network
 class SolanaTransactionService {
-  static final SolanaTransactionService _instance = SolanaTransactionService._internal();
+  static final SolanaTransactionService _instance =
+      SolanaTransactionService._internal();
   factory SolanaTransactionService() => _instance;
   SolanaTransactionService._internal();
 
   final http.Client _client = http.Client();
   final WalletService _walletService = WalletService();
-  
+
   int _requestId = 0;
   int get _nextId => ++_requestId;
 
   // ============ RPC Helper Methods ============
 
   /// Make a JSON-RPC call to Solana
-  Future<Map<String, dynamic>> _rpcCall(String method, List<dynamic> params) async {
+  Future<Map<String, dynamic>> _rpcCall(
+    String method,
+    List<dynamic> params,
+  ) async {
     try {
       final response = await _client.post(
         Uri.parse(SolanaConfig.rpcUrl),
@@ -43,7 +47,7 @@ class SolanaTransactionService {
       }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      
+
       if (data.containsKey('error')) {
         throw Exception(data['error']['message'] ?? 'RPC error');
       }
@@ -59,9 +63,9 @@ class SolanaTransactionService {
   Future<String?> getRecentBlockhash() async {
     try {
       final result = await _rpcCall('getLatestBlockhash', [
-        {'commitment': 'finalized'}
+        {'commitment': 'finalized'},
       ]);
-      
+
       return result['result']?['value']?['blockhash'];
     } catch (e) {
       debugPrint('SolanaTransactionService: Error getting blockhash: $e');
@@ -72,7 +76,9 @@ class SolanaTransactionService {
   /// Get minimum balance for rent exemption
   Future<int> getMinimumBalanceForRentExemption(int dataSize) async {
     try {
-      final result = await _rpcCall('getMinimumBalanceForRentExemption', [dataSize]);
+      final result = await _rpcCall('getMinimumBalanceForRentExemption', [
+        dataSize,
+      ]);
       return result['result'] ?? 0;
     } catch (e) {
       debugPrint('SolanaTransactionService: Error getting rent exemption: $e');
@@ -93,30 +99,40 @@ class SolanaTransactionService {
   }
 
   /// Confirm a transaction
-  Future<bool> confirmTransaction(String signature, {int maxRetries = 30}) async {
+  Future<bool> confirmTransaction(
+    String signature, {
+    int maxRetries = 30,
+  }) async {
     for (int i = 0; i < maxRetries; i++) {
       try {
-        final result = await _rpcCall('getSignatureStatuses', [[signature]]);
+        final result = await _rpcCall('getSignatureStatuses', [
+          [signature],
+        ]);
         final value = result['result']?['value']?[0];
-        
+
         if (value != null) {
           final confirmationStatus = value['confirmationStatus'];
-          if (confirmationStatus == 'confirmed' || confirmationStatus == 'finalized') {
-            debugPrint('SolanaTransactionService: Transaction confirmed: $signature');
+          if (confirmationStatus == 'confirmed' ||
+              confirmationStatus == 'finalized') {
+            debugPrint(
+              'SolanaTransactionService: Transaction confirmed: $signature',
+            );
             return true;
           }
           if (value['err'] != null) {
-            debugPrint('SolanaTransactionService: Transaction failed: ${value['err']}');
+            debugPrint(
+              'SolanaTransactionService: Transaction failed: ${value['err']}',
+            );
             return false;
           }
         }
-        
+
         await Future.delayed(const Duration(seconds: 1));
       } catch (e) {
         debugPrint('SolanaTransactionService: Error confirming: $e');
       }
     }
-    
+
     return false;
   }
 
@@ -126,22 +142,22 @@ class SolanaTransactionService {
       debugPrint('SolanaTransactionService: Airdrop only available on devnet');
       return null;
     }
-    
+
     try {
       final lamports = (sol * 1e9).toInt();
       final result = await _rpcCall('requestAirdrop', [pubkey, lamports]);
-      
+
       final signature = result['result'] as String?;
       if (signature != null) {
         debugPrint('SolanaTransactionService: Airdrop requested: $signature');
-        
+
         // Wait for confirmation
         final confirmed = await confirmTransaction(signature);
         if (confirmed) {
           debugPrint('SolanaTransactionService: Airdrop confirmed!');
         }
       }
-      
+
       return signature;
     } catch (e) {
       debugPrint('SolanaTransactionService: Airdrop error: $e');
@@ -152,7 +168,7 @@ class SolanaTransactionService {
   // ============ NFT Minting via Phantom ============
 
   /// Mint an NFT by building the transaction and sending to Phantom for signing
-  /// 
+  ///
   /// For MVP, this creates a simplified memo transaction as proof of concept.
   /// Full NFT minting requires the Metaplex SDK or backend integration.
   Future<MintTransactionResult> mintNFTViaPhantom({
@@ -163,7 +179,7 @@ class SolanaTransactionService {
   }) async {
     try {
       debugPrint('SolanaTransactionService: Building mint transaction...');
-      
+
       // Get recent blockhash
       final blockhash = await getRecentBlockhash();
       if (blockhash == null) {
@@ -172,7 +188,7 @@ class SolanaTransactionService {
           error: 'Failed to get blockhash',
         );
       }
-      
+
       // For MVP: Create a memo transaction as proof of concept
       // This proves the wallet connection and signing works
       // Full NFT minting requires Metaplex integration
@@ -182,7 +198,7 @@ class SolanaTransactionService {
         'rarity': rarity,
         'timestamp': DateTime.now().toIso8601String(),
       });
-      
+
       // Build serialized transaction (base64)
       // Note: This is a placeholder - real implementation needs proper transaction building
       final serializedTx = _buildMemoTransaction(
@@ -190,28 +206,30 @@ class SolanaTransactionService {
         blockhash: blockhash,
         memo: memoData,
       );
-      
+
       if (serializedTx == null) {
         return MintTransactionResult(
           success: false,
           error: 'Failed to build transaction',
         );
       }
-      
+
       // Send to Phantom for signing
       debugPrint('SolanaTransactionService: Sending to Phantom for signing...');
-      final signature = await _walletService.signAndSendTransaction(serializedTx);
-      
+      final signature = await _walletService.signAndSendTransaction(
+        serializedTx,
+      );
+
       if (signature == null) {
         return MintTransactionResult(
           success: false,
           error: 'User rejected or signing failed',
         );
       }
-      
+
       // Confirm transaction
       final confirmed = await confirmTransaction(signature);
-      
+
       return MintTransactionResult(
         success: confirmed,
         signature: signature,
@@ -220,10 +238,7 @@ class SolanaTransactionService {
       );
     } catch (e) {
       debugPrint('SolanaTransactionService: Mint error: $e');
-      return MintTransactionResult(
-        success: false,
-        error: e.toString(),
-      );
+      return MintTransactionResult(success: false, error: e.toString());
     }
   }
 
@@ -238,15 +253,17 @@ class SolanaTransactionService {
     // 1. Proper instruction encoding
     // 2. Account key serialization
     // 3. Transaction signature placeholders
-    // 
+    //
     // For a full implementation, consider:
     // - Using a Dart Solana SDK (solana package)
     // - Or building transactions on a backend server
     // - Or using Phantom's built-in transaction building
-    
+
     // For now, return null to indicate we need backend support
     // The wallet connection and deep linking is ready!
-    debugPrint('SolanaTransactionService: Transaction building requires backend or Solana SDK');
+    debugPrint(
+      'SolanaTransactionService: Transaction building requires backend or Solana SDK',
+    );
     return null;
   }
 
@@ -263,13 +280,11 @@ class SolanaTransactionService {
   }) async {
     try {
       debugPrint('SolanaTransactionService: Requesting mint from backend...');
-      
+
       final backendUrl = await BackendUrlProvider.getBackendUrl();
       final response = await _client.post(
         Uri.parse('$backendUrl${SolanaConfig.mintEndpoint}'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'walletAddress': walletAddress,
           'plantName': plantName,
@@ -288,7 +303,7 @@ class SolanaTransactionService {
       }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      
+
       if (data['success'] == true) {
         return MintTransactionResult(
           success: true,
@@ -304,10 +319,7 @@ class SolanaTransactionService {
       }
     } catch (e) {
       debugPrint('SolanaTransactionService: Backend mint error: $e');
-      return MintTransactionResult(
-        success: false,
-        error: e.toString(),
-      );
+      return MintTransactionResult(success: false, error: e.toString());
     }
   }
 }

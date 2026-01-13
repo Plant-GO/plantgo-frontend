@@ -7,11 +7,10 @@ import '../services/nft_minting_service.dart';
 /// Provider for community verification state management
 class VerificationProvider extends ChangeNotifier {
   final VerificationService _service = VerificationService();
-  final NFTMintingService _nftMintingService = NFTMintingService();
 
   /// Current user ID (set on initialization)
   String? _currentUserId;
-  
+
   /// List of pending verifications to display
   List<Map<String, dynamic>> _pendingVerifications = [];
   List<Map<String, dynamic>> get pendingVerifications => _pendingVerifications;
@@ -42,13 +41,13 @@ class VerificationProvider extends ChangeNotifier {
 
   /// Stream subscription for pending count
   StreamSubscription? _countSubscription;
-  
+
   /// Stream subscription for pending verifications
   StreamSubscription? _pendingSubscription;
-  
+
   /// Stream subscription for user submissions
   StreamSubscription? _submissionsSubscription;
-  
+
   /// Stream subscription for user votes
   StreamSubscription? _votesSubscription;
 
@@ -72,55 +71,68 @@ class VerificationProvider extends ChangeNotifier {
           notifyListeners();
         });
   }
-  
+
   /// Listen to pending verifications stream
   void _listenToPendingVerifications() {
     if (_currentUserId == null) return;
-    
+
     _pendingSubscription?.cancel();
     _pendingSubscription = _service
         .streamPendingVerifications(excludeUserId: _currentUserId)
-        .listen((verifications) {
-          _pendingVerifications = verifications;
-          debugPrint('🔄 Pending verifications updated: ${verifications.length} items');
-          notifyListeners();
-        }, onError: (error) {
-          debugPrint('❌ Error in pending verifications stream: $error');
-        });
+        .listen(
+          (verifications) {
+            _pendingVerifications = verifications;
+            debugPrint(
+              '🔄 Pending verifications updated: ${verifications.length} items',
+            );
+            notifyListeners();
+          },
+          onError: (error) {
+            debugPrint('❌ Error in pending verifications stream: $error');
+          },
+        );
   }
-  
+
   /// Listen to user submissions stream
   void _listenToUserSubmissions() {
     if (_currentUserId == null) return;
-    
+
     _submissionsSubscription?.cancel();
     _submissionsSubscription = _service
         .streamUserSubmissions(_currentUserId!)
-        .listen((submissions) {
-          _userSubmissions = submissions;
-          debugPrint('🔄 User submissions updated: ${submissions.length} items');
-          notifyListeners();
-        }, onError: (error) {
-          debugPrint('❌ Error in user submissions stream: $error');
-        });
+        .listen(
+          (submissions) {
+            _userSubmissions = submissions;
+            debugPrint(
+              '🔄 User submissions updated: ${submissions.length} items',
+            );
+            notifyListeners();
+          },
+          onError: (error) {
+            debugPrint('❌ Error in user submissions stream: $error');
+          },
+        );
   }
-  
+
   /// Listen to user votes stream
   void _listenToUserVotes() {
     if (_currentUserId == null) return;
-    
+
     _votesSubscription?.cancel();
     _votesSubscription = _service
         .streamUserVotes(_currentUserId!)
-        .listen((votes) {
-          _userVotes = votes;
-          debugPrint('🔄 User votes updated: ${votes.length} items');
-          notifyListeners();
-        }, onError: (error) {
-          debugPrint('❌ Error in user votes stream: $error');
-        });
+        .listen(
+          (votes) {
+            _userVotes = votes;
+            debugPrint('🔄 User votes updated: ${votes.length} items');
+            notifyListeners();
+          },
+          onError: (error) {
+            debugPrint('❌ Error in user votes stream: $error');
+          },
+        );
   }
-  
+
   /// Mark all pending verifications as seen (clears badge)
   Future<void> markAllAsSeen() async {
     await _service.markAllAsSeen(_currentUserId);
@@ -142,7 +154,9 @@ class VerificationProvider extends ChangeNotifier {
       _pendingVerifications = await _service.getPendingVerifications(
         excludeUserId: _currentUserId,
       );
-      debugPrint('✅ Loaded ${_pendingVerifications.length} pending verifications');
+      debugPrint(
+        '✅ Loaded ${_pendingVerifications.length} pending verifications',
+      );
     } catch (e) {
       debugPrint('❌ Error loading pending verifications: $e');
       _errorMessage = 'Failed to load verifications';
@@ -190,14 +204,18 @@ class VerificationProvider extends ChangeNotifier {
 
       if (result != null) {
         // Remove from pending list if resolved or voted
-        _pendingVerifications.removeWhere((item) => item['treasureId'] == treasureId);
-        
+        _pendingVerifications.removeWhere(
+          (item) => item['treasureId'] == treasureId,
+        );
+
         // If verified, trigger NFT minting for the original submitter
         if (result.status == VerificationStatus.verified) {
-          debugPrint('🎴 Verification passed - triggering NFT mint for treasure $treasureId');
+          debugPrint(
+            '🎴 Verification passed - triggering NFT mint for treasure $treasureId',
+          );
           await _mintNFTForVerifiedTreasure(treasureId);
         }
-        
+
         _isVoting = false;
         notifyListeners();
         return true;
@@ -229,7 +247,8 @@ class VerificationProvider extends ChangeNotifier {
         // Fetch from service if not in local cache
         await _service.mintNFTForVerifiedTreasure(
           treasureId: treasureId,
-          walletAddress: 'device_unknown', // Fallback, will be retrieved from treasure
+          walletAddress:
+              'device_unknown', // Fallback, will be retrieved from treasure
         );
         return;
       }
@@ -244,7 +263,7 @@ class VerificationProvider extends ChangeNotifier {
         treasureId: treasureId,
         walletAddress: walletAddress,
       );
-      
+
       debugPrint('✅ NFT minting triggered for verified treasure $treasureId');
     } catch (e) {
       debugPrint('❌ Error minting NFT for verified treasure: $e');

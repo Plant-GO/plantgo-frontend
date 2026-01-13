@@ -4,7 +4,7 @@ import '../providers/wallet_provider.dart';
 import '../services/wallet_service.dart';
 
 /// Wallet connection button with premium styling.
-/// 
+///
 /// Shows connection status and handles connect/disconnect actions.
 class WalletConnectButton extends StatelessWidget {
   final bool expanded;
@@ -108,19 +108,18 @@ class WalletConnectButton extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          const Icon(
-            Icons.keyboard_arrow_down,
-            color: Colors.white,
-            size: 18,
-          ),
+          const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 18),
         ],
       ),
     );
   }
 
-  Future<void> _handleConnect(BuildContext context, WalletProvider wallet) async {
+  Future<void> _handleConnect(
+    BuildContext context,
+    WalletProvider wallet,
+  ) async {
     final success = await wallet.connect();
-    
+
     if (success) {
       onConnected?.call();
       if (context.mounted) {
@@ -163,7 +162,7 @@ class WalletConnectButton extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Wallet info
             Container(
               padding: const EdgeInsets.all(16),
@@ -222,9 +221,9 @@ class WalletConnectButton extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Disconnect button
             SizedBox(
               width: double.infinity,
@@ -253,7 +252,7 @@ class WalletConnectButton extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
           ],
         ),

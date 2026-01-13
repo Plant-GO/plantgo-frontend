@@ -11,8 +11,6 @@ import '../core/theme/app_colors.dart';
 import '../models/level.dart';
 import '../providers/course_provider.dart';
 import '../providers/user_provider.dart';
-import '../providers/wallet_provider.dart';
-import '../providers/nft_provider.dart';
 import '../services/treasure_service.dart';
 import '../services/user_service.dart';
 import '../services/nft_minting_service.dart';
@@ -34,8 +32,6 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
   late Animation<double> _pulseAnimation;
   bool _isLoading = false;
   bool _plantFound = false;
-  String? _foundPlantName;
-  String? _foundTreasureId;
   Treasure? _foundTreasure;
 
   @override
@@ -88,8 +84,6 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
             if (levelTreasure != null && mounted) {
               setState(() {
                 _plantFound = true;
-                _foundPlantName = levelTreasure.commonName;
-                _foundTreasureId = levelTreasure.id;
                 _foundTreasure = levelTreasure;
               });
             }
@@ -686,11 +680,13 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
   Future<Uint8List?> _compressImage(File imageFile) async {
     try {
       final originalBytes = await imageFile.readAsBytes();
-      print('📷 Original image size: ${(originalBytes.length / 1024).toStringAsFixed(2)} KB');
-      
+      print(
+        '📷 Original image size: ${(originalBytes.length / 1024).toStringAsFixed(2)} KB',
+      );
+
       var quality = 85;
       Uint8List? compressedBytes;
-      
+
       // Try compression with decreasing quality until we get under 500KB
       while (quality > 20) {
         compressedBytes = await FlutterImageCompress.compressWithList(
@@ -699,19 +695,21 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
           minWidth: 800,
           minHeight: 800,
         );
-        
+
         final compressedSize = compressedBytes.length;
-        print('📦 Compressed to ${(compressedSize / 1024).toStringAsFixed(2)} KB at quality $quality');
-        
+        print(
+          '📦 Compressed to ${(compressedSize / 1024).toStringAsFixed(2)} KB at quality $quality',
+        );
+
         // Base64 encoding increases size by ~33%, so we need compressed size < 500KB
         // to ensure base64 size < 670KB (well under 1MB Firestore limit)
         if (compressedSize < 500 * 1024) {
           break;
         }
-        
+
         quality -= 15;
       }
-      
+
       return compressedBytes;
     } catch (e) {
       print('❌ Error compressing image: $e');
@@ -733,13 +731,15 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
       // Compress image to stay under Firestore's 1MB document limit
       final imageFile = File(imagePath);
       final compressedBytes = await _compressImage(imageFile);
-      
+
       if (compressedBytes == null) {
         throw Exception('Failed to compress image');
       }
 
       final imageBase64 = base64Encode(compressedBytes);
-      print('✅ Base64 encoded size: ${(imageBase64.length / 1024).toStringAsFixed(2)} KB');
+      print(
+        '✅ Base64 encoded size: ${(imageBase64.length / 1024).toStringAsFixed(2)} KB',
+      );
 
       // Get current location
       Position? position;
@@ -782,7 +782,8 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
         userName: userName,
         levelId: level.id,
         confidence: 0.9,
-        walletAddress: 'device_$userId', // Use device-based wallet for NFT minting
+        walletAddress:
+            'device_$userId', // Use device-based wallet for NFT minting
       );
 
       final treasure = result.treasure;
@@ -814,8 +815,6 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
         // Mark plant as found and store treasure
         setState(() {
           _plantFound = true;
-          _foundPlantName = plantName;
-          _foundTreasureId = treasure.id;
           _foundTreasure = treasure;
         });
 
@@ -842,20 +841,26 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
     }
   }
 
-  void _showSuccessDialog(BuildContext context, String plantName, Level level) async {
+  void _showSuccessDialog(
+    BuildContext context,
+    String plantName,
+    Level level,
+  ) async {
     // Show the fancy MintProgressDialog with halo effect
     // Create a completed future since NFT was already minted during saveTreasure
-    final completedMintFuture = Future<MintResult>.value(MintResult(
-      success: true,
-      nftCard: NFTCard(
-        ownerWallet: 'device_${context.read<UserProvider>().deviceId}',
-        plantName: plantName,
-        rarity: CardRarity.auroraSeed, // Will show as legendary
-        nftMint: 'auto_minted',
-        mintedAt: DateTime.now(),
+    final completedMintFuture = Future<MintResult>.value(
+      MintResult(
+        success: true,
+        nftCard: NFTCard(
+          ownerWallet: 'device_${context.read<UserProvider>().deviceId}',
+          plantName: plantName,
+          rarity: CardRarity.auroraSeed, // Will show as legendary
+          nftMint: 'auto_minted',
+          mintedAt: DateTime.now(),
+        ),
+        message: 'NFT auto-minted!',
       ),
-      message: 'NFT auto-minted!',
-    ));
+    );
 
     await MintProgressDialog.show(
       context: context,

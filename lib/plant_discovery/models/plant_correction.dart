@@ -6,9 +6,9 @@ class PlantCorrection {
   final String originalTreasureId;
   final String originalPlantName;
   final String correctedPlantName;
-  final String correctedBy;           // User who submitted the correction
-  final String correctedByName;       // Display name of corrector
-  final String originalDiscoveredBy;  // Original discoverer user ID
+  final String correctedBy; // User who submitted the correction
+  final String correctedByName; // Display name of corrector
+  final String originalDiscoveredBy; // Original discoverer user ID
   final String originalDiscoveredByName; // Original discoverer display name
   final double originalConfidence;
   final String? imageBase64;
@@ -20,7 +20,7 @@ class PlantCorrection {
   final List<String> voterIds;
   final DateTime submittedAt;
   final DateTime? verifiedAt;
-  
+
   // Threshold for community verification
   static const int upvotesRequired = 3;
   static const int downvotesRequired = 2;
@@ -83,7 +83,8 @@ class PlantCorrection {
       correctedBy: correctedBy ?? this.correctedBy,
       correctedByName: correctedByName ?? this.correctedByName,
       originalDiscoveredBy: originalDiscoveredBy ?? this.originalDiscoveredBy,
-      originalDiscoveredByName: originalDiscoveredByName ?? this.originalDiscoveredByName,
+      originalDiscoveredByName:
+          originalDiscoveredByName ?? this.originalDiscoveredByName,
       originalConfidence: originalConfidence ?? this.originalConfidence,
       imageBase64: imageBase64 ?? this.imageBase64,
       latitude: latitude ?? this.latitude,
@@ -138,7 +139,8 @@ class PlantCorrection {
       upvotes: data['upvotes'] ?? 0,
       downvotes: data['downvotes'] ?? 0,
       voterIds: List<String>.from(data['voterIds'] ?? []),
-      submittedAt: (data['submittedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      submittedAt:
+          (data['submittedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       verifiedAt: (data['verifiedAt'] as Timestamp?)?.toDate(),
     );
   }
@@ -146,9 +148,9 @@ class PlantCorrection {
 
 /// Status of a plant correction submission
 enum CorrectionStatus {
-  pending,    // Awaiting community votes
-  approved,   // Community approved - correction applied
-  rejected,   // Community rejected - original name kept
+  pending, // Awaiting community votes
+  approved, // Community approved - correction applied
+  rejected, // Community rejected - original name kept
 }
 
 extension CorrectionStatusExtension on CorrectionStatus {
