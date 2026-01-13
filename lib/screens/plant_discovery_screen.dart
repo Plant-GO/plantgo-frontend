@@ -455,6 +455,7 @@ class _PlantDiscoveryScreenState extends State<PlantDiscoveryScreen>
         plantName: widget.plant.name,
         isNewSpecies: widget.plant.rarity == PlantRarity.legendary,
         scientificName: widget.plant.scientificName,
+        imageUrl: widget.plant.imageUrl,
       );
 
       final result = await MintProgressDialog.show(

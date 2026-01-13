@@ -5,6 +5,7 @@ import '../blockchain/blockchain.dart';
 import '../providers/wallet_provider.dart';
 import '../providers/nft_provider.dart';
 import '../providers/user_provider.dart';
+import '../widgets/nft_card_widget.dart';
 
 /// NFT Cards Screen - Displays user's NFT collection
 class NFTCardsScreen extends StatefulWidget {
@@ -475,126 +476,7 @@ class _NFTCardsScreenState extends State<NFTCardsScreen> {
   }
 
   Widget _buildNFTCard(NFTCard nft) {
-    return GestureDetector(
-      onTap: () => _showNFTDetails(nft),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(nft.rarity.primaryColor),
-              Color(nft.rarity.secondaryColor),
-            ],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Color(nft.rarity.primaryColor).withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            // Background pattern
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: CustomPaint(
-                  painter: _CardPatternPainter(
-                    color: Colors.white.withValues(alpha: 0.1),
-                  ),
-                ),
-              ),
-            ),
-
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Rarity badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      nft.rarity.rarityTier,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  // Plant icon
-                  Center(
-                    child: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.eco,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  // Plant name
-                  Text(
-                    nft.plantName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    nft.rarity.displayName,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Legendary indicator
-            if (nft.rarity.isLegendary)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Icon(
-                  Icons.auto_awesome,
-                  color: Colors.amber[300],
-                  size: 20,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
+    return NFTCardWidget(nftCard: nft, onTap: () => _showNFTDetails(nft));
   }
 
   void _showNFTDetails(NFTCard nft) {
@@ -800,33 +682,4 @@ class _NFTCardsScreenState extends State<NFTCardsScreen> {
         return 'Knowledge card awarded for quiz participation. Every bit of learning counts!';
     }
   }
-}
-
-/// Custom painter for card background pattern
-class _CardPatternPainter extends CustomPainter {
-  final Color color;
-
-  _CardPatternPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    // Draw decorative circles
-    canvas.drawCircle(
-      Offset(size.width * 0.9, size.height * 0.1),
-      size.width * 0.3,
-      paint,
-    );
-    canvas.drawCircle(
-      Offset(size.width * 0.1, size.height * 0.9),
-      size.width * 0.25,
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
