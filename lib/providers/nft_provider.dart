@@ -72,6 +72,20 @@ class NFTProvider extends ChangeNotifier {
     _subscribeToNFTs();
   }
 
+  /// Reset NFT state (call when switching users)
+  void reset() {
+    _nftSubscription?.cancel();
+    _nftSubscription = null;
+    _nfts = [];
+    _blockchainNFTs = [];
+    _walletAddress = null;
+    _isLoading = false;
+    _mintingState = MintingState.idle;
+    _lastMintResult = null;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   /// Subscribe to real-time NFT updates
   void _subscribeToNFTs() {
     if (_walletAddress == null) return;

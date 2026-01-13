@@ -11,6 +11,8 @@ class UserProvider extends ChangeNotifier {
   bool _isLoading = false;
   String _userName = '';
   String _deviceId = '';
+  String? _email;
+  bool _isGuest = true;
 
   UserProvider({FirebaseSyncService? firebaseService})
     : _firebaseService = firebaseService;
@@ -19,6 +21,8 @@ class UserProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String get userName => _userName;
   String get deviceId => _deviceId;
+  String? get email => _email;
+  bool get isGuest => _isGuest;
 
   int get coins => _progress.coins;
   int get leaves => _progress.leaves;
@@ -31,9 +35,32 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Set device ID
+  /// Set device ID (or Firebase UID for registered users)
   void setDeviceId(String id) {
     _deviceId = id;
+    notifyListeners();
+  }
+
+  /// Set email for registered users
+  void setEmail(String? email) {
+    _email = email;
+    notifyListeners();
+  }
+
+  /// Set guest status
+  void setIsGuest(bool isGuest) {
+    _isGuest = isGuest;
+    notifyListeners();
+  }
+
+  /// Reset user state (call when switching users)
+  void reset() {
+    _progress = SampleUser.defaultProgress;
+    _isLoading = false;
+    _userName = '';
+    _deviceId = '';
+    _email = null;
+    _isGuest = true;
     notifyListeners();
   }
 

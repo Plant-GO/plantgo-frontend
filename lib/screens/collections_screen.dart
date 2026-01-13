@@ -19,6 +19,7 @@ class CollectionsScreen extends StatefulWidget {
 class _CollectionsScreenState extends State<CollectionsScreen> {
   final TreasureService _treasureService = TreasureService();
   String? _userId;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -28,17 +29,56 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
 
   Future<void> _loadUserId() async {
     final prefs = await SharedPreferences.getInstance();
+    final isGuest = prefs.getBool('isGuest') ?? true;
+    
+    // Use userId for registered users, deviceId for guests
+    String? userId;
+    if (isGuest) {
+      userId = prefs.getString('deviceId');
+    } else {
+      userId = prefs.getString('userId');
+    }
+    
     setState(() {
-      _userId = prefs.getString('deviceId');
+      _userId = userId;
+      _isLoading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_userId == null) {
+    if (_isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.background,
         body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    
+    // If userId is null after loading, show empty state
+    if (_userId == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.eco_outlined,
+                size: 80,
+                color: AppColors.textTertiary,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'No collection yet',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 

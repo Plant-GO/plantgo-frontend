@@ -52,13 +52,22 @@ class _MainNavigationState extends State<MainNavigation> {
   Future<void> _loadUserProgress() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('deviceId');
+      final isGuest = prefs.getBool('isGuest') ?? true;
+      
+      // Use userId for registered users, deviceId for guests
+      String? userId;
+      if (isGuest) {
+        userId = prefs.getString('deviceId');
+      } else {
+        userId = prefs.getString('userId');
+      }
       
       if (userId != null && mounted) {
         // Set user ID in UserProvider (IMPORTANT: This must be done first!)
         final userProvider = Provider.of<UserProvider>(context, listen: false);
         userProvider.setDeviceId(userId);
-        debugPrint('🆔 Set deviceId in UserProvider: $userId');
+        userProvider.setIsGuest(isGuest);
+        debugPrint('🆔 Set userId in UserProvider: $userId (isGuest: $isGuest)');
         
         // Load course progress
         final courseProvider = Provider.of<CourseProvider>(context, listen: false);

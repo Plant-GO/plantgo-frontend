@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// User model for PlantGo app
 class AppUser {
-  final String userId; // Device ID
+  final String userId; // Device ID or Firebase UID
   final String userName;
+  final String? email; // Email for registered users, null for guests
+  final bool isGuest; // True for device-based login, false for email login
   final int coins;
   final int leaves; // Number of plants found
   final List<String> completedLevelIds;
@@ -14,6 +16,8 @@ class AppUser {
   AppUser({
     required this.userId,
     required this.userName,
+    this.email,
+    this.isGuest = true,
     this.coins = 0,
     this.leaves = 0,
     this.completedLevelIds = const [],
@@ -28,6 +32,8 @@ class AppUser {
     return AppUser(
       userId: doc.id,
       userName: data['userName'] ?? 'Anonymous',
+      email: data['email'],
+      isGuest: data['isGuest'] ?? true,
       coins: data['coins'] ?? 0,
       leaves: data['leaves'] ?? 0,
       completedLevelIds: List<String>.from(data['completedLevelIds'] ?? []),
@@ -40,6 +46,8 @@ class AppUser {
   Map<String, dynamic> toFirestore() {
     return {
       'userName': userName,
+      'email': email,
+      'isGuest': isGuest,
       'coins': coins,
       'leaves': leaves,
       'completedLevelIds': completedLevelIds,
@@ -52,6 +60,8 @@ class AppUser {
   AppUser copyWith({
     String? userId,
     String? userName,
+    String? email,
+    bool? isGuest,
     int? coins,
     int? leaves,
     List<String>? completedLevelIds,
@@ -62,6 +72,8 @@ class AppUser {
     return AppUser(
       userId: userId ?? this.userId,
       userName: userName ?? this.userName,
+      email: email ?? this.email,
+      isGuest: isGuest ?? this.isGuest,
       coins: coins ?? this.coins,
       leaves: leaves ?? this.leaves,
       completedLevelIds: completedLevelIds ?? this.completedLevelIds,

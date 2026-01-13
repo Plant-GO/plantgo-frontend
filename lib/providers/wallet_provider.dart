@@ -148,6 +148,13 @@ class WalletProvider extends ChangeNotifier {
   /// Clear any error state
   void clearError() {
     _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Reset wallet state (call when switching users)
+  Future<void> reset() async {
+    await disconnect();
+    _balance = 0;
     if (_connectionState == WalletConnectionState.error) {
       _connectionState = WalletConnectionState.disconnected;
     }

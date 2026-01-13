@@ -16,7 +16,7 @@ import 'providers/nft_provider.dart';
 import 'providers/verification_provider.dart';
 import 'services/backend_url_provider.dart';
 import 'screens/main_navigation.dart';
-import 'screens/welcome_screen.dart';
+import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,21 +36,33 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final hasCompletedOnboarding = prefs.getBool('hasCompletedOnboarding') ?? false;
   final userName = prefs.getString('userName');
+  final userId = prefs.getString('userId') ?? prefs.getString('deviceId');
+  final userEmail = prefs.getString('userEmail');
+  final isGuest = prefs.getBool('isGuest') ?? true;
 
   runApp(PlantGoApp(
     hasCompletedOnboarding: hasCompletedOnboarding,
     userName: userName,
+    userId: userId,
+    userEmail: userEmail,
+    isGuest: isGuest,
   ));
 }
 
 class PlantGoApp extends StatelessWidget {
   final bool hasCompletedOnboarding;
   final String? userName;
+  final String? userId;
+  final String? userEmail;
+  final bool isGuest;
 
   const PlantGoApp({
     super.key,
     required this.hasCompletedOnboarding,
     this.userName,
+    this.userId,
+    this.userEmail,
+    required this.isGuest,
   });
 
   @override
@@ -59,7 +71,11 @@ class PlantGoApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => CourseProvider()),
         ChangeNotifierProvider(create: (_) => MapProvider()),
-        ChangeNotifierProvider(create: (_) => UserProvider()..setUserName(userName ?? '')),
+        ChangeNotifierProvider(create: (_) => UserProvider()
+          ..setUserName(userName ?? '')
+          ..setDeviceId(userId ?? '')
+          ..setEmail(userEmail)
+          ..setIsGuest(isGuest)),
         ChangeNotifierProvider(create: (_) => ScanProvider()),
         // Blockchain providers
         ChangeNotifierProvider(create: (_) => WalletProvider()..initialize()),
@@ -73,7 +89,7 @@ class PlantGoApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         home: hasCompletedOnboarding 
             ? const MainNavigation() 
-            : const WelcomeScreen(),
+            : const LoginScreen(),
       ),
     );
   }

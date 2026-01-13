@@ -150,6 +150,39 @@ class UserService {
         .map((doc) => doc.exists ? AppUser.fromFirestore(doc) : null);
   }
 
+  /// Create a new user with email (for registered users)
+  Future<AppUser> createEmailUser(String firebaseUid, String userName, String email) async {
+    try {
+      final docRef = _firestore.collection(_usersCollection).doc(firebaseUid);
+      final doc = await docRef.get();
+
+      if (doc.exists) {
+        // User already exists, return existing user
+        return AppUser.fromFirestore(doc);
+      }
+
+      // Create new user with email
+      final newUser = AppUser(
+        userId: firebaseUid,
+        userName: userName,
+        email: email,
+        isGuest: false,
+      );
+      await docRef.set(newUser.toFirestore());
+      print('✅ Created new email user: $firebaseUid');
+      return newUser;
+    } catch (e) {
+      print('❌ Error creating email user: $e');
+      rethrow;
+    }
+  }
+
+  /// Get current user ID from local storage (either device ID or Firebase UID)
+  Future<String?> getCurrentUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('userId') ?? prefs.getString('deviceId');
+  }
+
   /// Get current user's device ID from local storage
   Future<String?> getCurrentDeviceId() async {
     final prefs = await SharedPreferences.getInstance();
@@ -163,8 +196,8 @@ class UserService {
   }
 
   /// Update user's name
-  Future<void> updateUserName(String deviceId, String newName) async {
-    final userRef = _firestore.collection(_usersCollection).doc(deviceId);
+  Future<void> updateUserName(String userId, String newName) async {
+    final userRef = _firestore.collection(_usersCollection).doc(userId);
     
     await userRef.update({
       'userName': newName,
@@ -177,10 +210,10 @@ class UserService {
   }
 
   /// Get user's total treasure count
-  Future<int> getUserTreasureCount(String deviceId) async {
+  Future<int> getUserTreasureCount(String userId) async {
     final treasures = await _firestore
         .collection('treasures')
-        .where('userId', isEqualTo: deviceId)
+        .where('userId', isEqualTo: userId)
         .get();
     
     return treasures.docs.length;

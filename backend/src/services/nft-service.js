@@ -249,13 +249,21 @@ async function mintNFT({
       creatorAddress: mintAuthority.publicKey.toBase58(),
     });
     
-    // Store metadata and get URL
+    // For devnet: Use data URI to embed metadata (Phantom can read this)
+    // For production: Use IPFS or Arweave
+    const metadataJson = JSON.stringify(fullMetadata);
+    const metadataBase64 = Buffer.from(metadataJson).toString('base64');
+    const metadataUri = `data:application/json;base64,${metadataBase64}`;
+    
+    // Also store for HTTP access (for debugging)
     const metadataId = storeMetadata(fullMetadata);
     const baseUrl = process.env.BASE_URL || 'http://localhost:3001';
-    const metadataUri = getMetadataUrl(metadataId, baseUrl);
+    const httpMetadataUrl = getMetadataUrl(metadataId, baseUrl);
     
     console.log('📝 Metadata stored:', metadataId);
-    console.log('🔗 Metadata URI:', metadataUri);
+    console.log('🔗 HTTP URL (debug):', httpMetadataUrl);
+    console.log('📦 Using data URI for on-chain (Phantom compatible)');
+    console.log(`   Size: ${metadataBase64.length} bytes`);
     
     // Get rarity config
     const rarityConfig = RARITY_CONFIG[rarity] || RARITY_CONFIG.genesisFragment;
@@ -276,6 +284,9 @@ async function mintNFT({
     
     // Create the NFT
     console.log('🔨 Creating NFT on-chain...');
+    console.log('   Owner Wallet:', ownerWallet);
+    console.log('   Metadata URI:', metadataUri);
+    
     const { signature } = await createNft(umi, {
       mint,
       name: shortName,
@@ -294,10 +305,17 @@ async function mintNFT({
       ? `https://explorer.solana.com/tx/${signatureBase58}`
       : `https://explorer.solana.com/tx/${signatureBase58}?cluster=${network}`;
     
+    const mintAddress = mint.publicKey.toString();
+    
     console.log('✅ NFT minted successfully!');
-    console.log('   Mint:', mint.publicKey);
+    console.log('   Mint Address:', mintAddress);
+    console.log('   Owner:', ownerWallet);
     console.log('   Signature:', signatureBase58);
     console.log('   Explorer:', explorerUrl);
+    console.log('   🔗 View NFT: https://explorer.solana.com/address/' + mintAddress + '?cluster=' + network);
+    console.log('');
+    console.log('⏳ Note: It may take 1-2 minutes for the NFT to appear in Phantom wallet.');
+    console.log('   Phantom needs to index the new NFT from the blockchain.');
     
     return {
       success: true,
