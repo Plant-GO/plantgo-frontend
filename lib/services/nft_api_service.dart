@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../blockchain/blockchain.dart';
+import 'backend_url_provider.dart';
 
 /// Service for interacting with the PlantGO backend API for NFT operations.
 /// 
@@ -42,8 +43,9 @@ class NFTApiService {
     String? scientificName,
   }) async {
     try {
+      final backendUrl = await BackendUrlProvider.getBackendUrl();
       final response = await _client.post(
-        Uri.parse('${SolanaConfig.backendApiUrl}${SolanaConfig.mintEndpoint}'),
+        Uri.parse('$backendUrl${SolanaConfig.mintEndpoint}'),
         headers: _headers,
         body: jsonEncode({
           'wallet_address': walletAddress,
@@ -79,8 +81,9 @@ class NFTApiService {
     required bool isWinner,
   }) async {
     try {
+      final backendUrl = await BackendUrlProvider.getBackendUrl();
       final response = await _client.post(
-        Uri.parse('${SolanaConfig.backendApiUrl}${SolanaConfig.mintEndpoint}'),
+        Uri.parse('$backendUrl${SolanaConfig.mintEndpoint}'),
         headers: _headers,
         body: jsonEncode({
           'wallet_address': walletAddress,
@@ -107,9 +110,10 @@ class NFTApiService {
   /// Returns a list of NFTCard objects owned by the user.
   Future<List<NFTCard>> getUserNFTs(String walletAddress) async {
     try {
+      final backendUrl = await BackendUrlProvider.getBackendUrl();
       final response = await _client.get(
         Uri.parse(
-          '${SolanaConfig.backendApiUrl}${SolanaConfig.userNftsEndpoint}/$walletAddress',
+          '$backendUrl${SolanaConfig.userNftsEndpoint}/$walletAddress',
         ),
         headers: _headers,
       ).timeout(_timeout);
@@ -150,8 +154,9 @@ class NFTApiService {
         if (rarity != null) 'rarity': rarity.name,
       };
 
+      final backendUrl = await BackendUrlProvider.getBackendUrl();
       final uri = Uri.parse(
-        '${SolanaConfig.backendApiUrl}/api/nft/check-ownership',
+        '$backendUrl/api/nft/check-ownership',
       ).replace(queryParameters: queryParams);
 
       final response = await _client.get(
@@ -178,9 +183,10 @@ class NFTApiService {
   /// Returns PlantCounter with mint counts.
   Future<PlantCounter?> getPlantCounter(String plantName) async {
     try {
+      final backendUrl = await BackendUrlProvider.getBackendUrl();
       final response = await _client.get(
         Uri.parse(
-          '${SolanaConfig.backendApiUrl}/api/plant-counter/$plantName',
+          '$backendUrl/api/plant-counter/$plantName',
         ),
         headers: _headers,
       ).timeout(_timeout);

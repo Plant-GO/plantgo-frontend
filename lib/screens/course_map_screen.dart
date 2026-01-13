@@ -7,6 +7,7 @@ import '../providers/user_provider.dart';
 import '../widgets/level_node.dart';
 import '../widgets/stat_pill.dart';
 import 'level_detail_screen.dart';
+import 'backend_config_screen.dart';
 import 'dart:math' as math;
 
 /// Course Map Screen - Level progression with curved path
@@ -52,7 +53,14 @@ class CourseMapScreen extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.settings_rounded),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BackendConfigScreen(),
+                ),
+              );
+            },
           ),
         ],
       ),

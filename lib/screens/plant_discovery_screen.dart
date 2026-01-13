@@ -10,6 +10,7 @@ import '../providers/nft_provider.dart';
 import '../models/user_progress.dart';
 import '../widgets/care_info_chip.dart';
 import '../widgets/mint_progress_dialog.dart';
+import '../services/nft_minting_service.dart';
 
 /// Plant Discovery Screen - Celebration screen when finding a plant
 class PlantDiscoveryScreen extends StatefulWidget {
@@ -446,12 +447,15 @@ class _PlantDiscoveryScreenState extends State<PlantDiscoveryScreen>
       return;
     }
     
+    // Check if this is a new species (never discovered before in database)
+    final isNewSpecies = await NFTMintingService().isNewSpecies(widget.plant.name);
+    
     // Show minting dialog
     if (context.mounted) {
       final mintFuture = nftProvider.mintPlantDiscoveryNFT(
         walletAddress: walletProvider.walletAddress!,
         plantName: widget.plant.name,
-        isNewSpecies: widget.plant.rarity == PlantRarity.legendary,
+        isNewSpecies: isNewSpecies,
         scientificName: widget.plant.scientificName,
       );
       

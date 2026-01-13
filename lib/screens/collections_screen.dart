@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme/app_colors.dart';
-import '../models/plant.dart';
-import '../models/user_progress.dart';
-import '../providers/user_provider.dart';
 import '../providers/nft_provider.dart';
+import '../providers/wallet_provider.dart';
 import '../services/treasure_service.dart';
-import '../services/user_service.dart';
 import 'map_exploration_screen.dart';
 import 'nft_cards_screen.dart';
 
@@ -83,60 +80,73 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                           ],
                         ),
                       ),
-                      // NFT Cards button
-                      Consumer<NFTProvider>(
-                        builder: (context, nftProvider, child) {
-                          return GestureDetector(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const NFTCardsScreen(),
+                      // Action buttons (NFT Cards + Wallet)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // NFT Cards button
+                          Consumer<NFTProvider>(
+                            builder: (context, nftProvider, child) {
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const NFTCardsScreen(),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.primary,
+                                        AppColors.primary.withValues(alpha: 0.8),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primary.withValues(alpha: 0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.collections_bookmark,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'NFTs (${nftProvider.totalNFTs})',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.primary,
-                                    AppColors.primary.withValues(alpha: 0.8),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.collections_bookmark,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'NFTs (${nftProvider.totalNFTs})',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                          ),
+                          const SizedBox(height: 8),
+                          // Connect Wallet button
+                          Consumer<WalletProvider>(
+                            builder: (context, walletProvider, child) {
+                              return _buildWalletButton(walletProvider);
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   );
@@ -224,6 +234,136 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       itemBuilder: (context, index) {
         return _TreasureCard(treasure: treasures[index]);
       },
+    );
+  }
+
+  Widget _buildWalletButton(WalletProvider walletProvider) {
+    if (walletProvider.isConnected) {
+      // Connected state - show abbreviated address
+      return GestureDetector(
+        onTap: () async {
+          // Refresh balance when tapped
+          await walletProvider.refreshBalance();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.green.shade700,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.green.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.account_balance_wallet, color: Colors.white, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                walletProvider.displayAddress,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // Disconnected state - show connect button
+      return GestureDetector(
+        onTap: () async {
+          // Check if Phantom is installed
+          if (!walletProvider.isPhantomInstalled) {
+            _showPhantomNotInstalledDialog();
+            return;
+          }
+
+          // Connect wallet
+          final connected = await walletProvider.connect();
+          
+          if (connected) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('✅ Wallet connected successfully!'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('❌ Failed to connect wallet'),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.purple.shade600,
+                Colors.purple.shade800,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.purple.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.account_balance_wallet, color: Colors.white, size: 16),
+              SizedBox(width: 6),
+              Text(
+                'Connect',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showPhantomNotInstalledDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Phantom Wallet Not Found'),
+        content: const Text(
+          'Phantom wallet app is not installed on your device. '
+          'Please install it from the App Store or Play Store to connect your wallet.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 }

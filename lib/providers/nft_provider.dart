@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import '../blockchain/blockchain.dart';
 import '../services/nft_minting_service.dart';
+import '../services/blockchain_nft_service.dart';
 
 /// Provider for NFT collection state and minting operations.
 /// 
@@ -9,10 +11,15 @@ import '../services/nft_minting_service.dart';
 /// For Production: Switch to NFTApiService with backend server
 class NFTProvider extends ChangeNotifier {
   final NFTMintingService _mintingService = NFTMintingService();
+  final BlockchainNFTService _blockchainService = BlockchainNFTService();
 
-  /// User's owned NFTs
+  /// User's owned NFTs (from Firestore)
   List<NFTCard> _nfts = [];
   List<NFTCard> get nfts => List.unmodifiable(_nfts);
+
+  /// NFTs fetched directly from blockchain
+  List<BlockchainNFT> _blockchainNFTs = [];
+  List<BlockchainNFT> get blockchainNFTs => List.unmodifiable(_blockchainNFTs);
 
   /// Current wallet address
   String? _walletAddress;
@@ -78,29 +85,76 @@ class NFTProvider extends ChangeNotifier {
         });
   }
 
-  /// Load NFTs for a wallet address
+  /// Load NFTs for a wallet address (from Firestore + blockchain)
   Future<void> loadNFTs(String walletAddress) async {
     if (_isLoading) return;
 
     _walletAddress = walletAddress;
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
+      // Load from Firestore (app's database)
       _nfts = await _mintingService.getUserNFTs(walletAddress);
       _nfts.sort((a, b) => (b.mintedAt ?? DateTime.now())
           .compareTo(a.mintedAt ?? DateTime.now()));
       
       // Start listening for real-time updates
       _subscribeToNFTs();
+      
+      // Also fetch from blockchain in background
+      _fetchBlockchainNFTs(walletAddress);
     } catch (e) {
       debugPrint('NFTProvider: Load NFTs error: $e');
       _errorMessage = 'Failed to load NFTs: $e';
     } finally {
       _isLoading = false;
+      _safeNotifyListeners();
+    }
+  }
+
+  /// Safely notify listeners, avoiding calls during build phase
+  void _safeNotifyListeners() {
+    // Check if we're in a valid state to notify
+    // Using scheduleMicrotask ensures we're not in the middle of a build
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      // We're during a build, schedule for after
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
+    } else {
+      // Safe to notify immediately
       notifyListeners();
     }
+  }
+
+  /// Fetch NFTs directly from the Solana blockchain
+  Future<void> _fetchBlockchainNFTs(String walletAddress) async {
+    try {
+      debugPrint('NFTProvider: Fetching blockchain NFTs for $walletAddress');
+      _blockchainNFTs = await _blockchainService.getWalletNFTs(walletAddress);
+      debugPrint('NFTProvider: Found ${_blockchainNFTs.length} blockchain NFTs');
+      _safeNotifyListeners();
+    } catch (e) {
+      debugPrint('NFTProvider: Error fetching blockchain NFTs: $e');
+    }
+  }
+
+  /// Refresh blockchain NFTs
+  Future<void> refreshBlockchainNFTs() async {
+    if (_walletAddress == null) return;
+    await _fetchBlockchainNFTs(_walletAddress!);
+  }
+
+  /// Get combined count of all NFTs (Firestore + unique blockchain)
+  int get totalAllNFTs {
+    final firestoreCount = _nfts.length;
+    // Blockchain NFTs that aren't already tracked in Firestore
+    final uniqueBlockchainCount = _blockchainNFTs.where((bn) {
+      return !_nfts.any((n) => n.nftMint == bn.mint);
+    }).length;
+    return firestoreCount + uniqueBlockchainCount;
   }
 
   /// Mint a plant discovery NFT

@@ -1,0 +1,6 @@
+# Backend specific ignores
+.env
+.keypair-backup.json
+node_modules/
+dist/
+*.log

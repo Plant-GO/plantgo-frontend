@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../blockchain/blockchain.dart';
 import '../services/nft_minting_service.dart';
 
@@ -392,23 +393,38 @@ class _MintProgressDialogState extends State<MintProgressDialog>
     if (_currentStep == MintingStep.complete) {
       return Row(
         children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () {
-                if (_result?.explorerUrl != null) {
-                  // Open Solana Explorer - could use url_launcher
-                }
-              },
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          if (_result?.explorerUrl != null)
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final url = _result!.explorerUrl!;
+                  final uri = Uri.parse(url);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Could not open: $url'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('View on Explorer'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  side: const BorderSide(color: Color(0xFF14F195), width: 1.5),
+                  foregroundColor: const Color(0xFF14F195),
                 ),
               ),
-              child: const Text('View on Explorer'),
             ),
-          ),
-          const SizedBox(width: 12),
+          if (_result?.explorerUrl != null) const SizedBox(width: 12),
           Expanded(
             child: ElevatedButton(
               onPressed: () {

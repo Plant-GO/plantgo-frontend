@@ -45,5 +45,35 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- URL Scheme for Phantom wallet callbacks -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>plantgo</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.plantgo.app</string>
+		</dict>
+	</array>
+	
+	<!-- Allow querying for Phantom app -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>phantom</string>
+		<string>https</string>
+	</array>
+	
+	<!-- Camera and Location permissions -->
+	<key>NSCameraUsageDescription</key>
+	<string>PlantGO needs camera access to identify plants</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>PlantGO needs location access to save plant discovery locations</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>PlantGO needs location access to track your plant discoveries</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>PlantGO needs photo library access to select plant images</string>
 </dict>
 </plist>

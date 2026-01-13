@@ -317,15 +317,19 @@ class TreasureService {
             snapshot.docs.map((doc) => Treasure.fromFirestore(doc)).toList());
   }
 
-  /// Get all treasures (community map)
+  /// Get all treasures (community map) - ONLY VERIFIED PLANTS
   Future<List<Treasure>> getAllTreasures() async {
     try {
       final snapshot = await _firestore
           .collection(_treasuresCollection)
+          .where('verificationStatus', whereIn: [
+            VerificationStatus.autoVerified.name,
+            VerificationStatus.verified.name,
+          ])
           .limit(100)
           .get();
       
-      print('📍 Firestore query completed. Found ${snapshot.docs.length} documents');
+      print('📍 Firestore query completed. Found ${snapshot.docs.length} verified treasures');
       
       final treasures = snapshot.docs.map((doc) {
         print('📍 Processing document ${doc.id}: ${doc.data()}');

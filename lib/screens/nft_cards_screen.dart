@@ -18,10 +18,15 @@ class _NFTCardsScreenState extends State<NFTCardsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadNFTs();
+    // Use addPostFrameCallback to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadNFTs();
+    });
   }
 
   Future<void> _loadNFTs() async {
+    if (!mounted) return;
+    
     final walletProvider = context.read<WalletProvider>();
     final userProvider = context.read<UserProvider>();
     final nftProvider = context.read<NFTProvider>();
@@ -41,6 +46,12 @@ class _NFTCardsScreenState extends State<NFTCardsScreen> {
         elevation: 0,
         foregroundColor: AppColors.textPrimary,
         actions: [
+          // Wallet Connect Button
+          Consumer<WalletProvider>(
+            builder: (context, wallet, _) {
+              return _buildWalletButton(wallet);
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadNFTs,
@@ -61,6 +72,210 @@ class _NFTCardsScreenState extends State<NFTCardsScreen> {
 
           return _buildNFTGrid(nftProvider);
         },
+      ),
+    );
+  }
+  
+  Widget _buildWalletButton(WalletProvider wallet) {
+    if (wallet.isConnected) {
+      // Connected state - show wallet address and balance
+      return PopupMenuButton<String>(
+        offset: const Offset(0, 45),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+            ),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.account_balance_wallet, color: Colors.white, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                wallet.displayAddress,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        onSelected: (value) async {
+          if (value == 'disconnect') {
+            await wallet.disconnect();
+            _loadNFTs();
+          } else if (value == 'airdrop') {
+            _showAirdropDialog(wallet);
+          } else if (value == 'copy') {
+            // Copy address to clipboard
+            // Clipboard.setData(ClipboardData(text: wallet.walletAddress!));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Wallet address copied!')),
+            );
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: 'balance',
+            enabled: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Balance', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(
+                  '${wallet.balance.toStringAsFixed(4)} SOL',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuDivider(),
+          const PopupMenuItem(
+            value: 'airdrop',
+            child: Row(
+              children: [
+                Icon(Icons.add_circle_outline, size: 20),
+                SizedBox(width: 8),
+                Text('Request Airdrop (Devnet)'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'copy',
+            child: Row(
+              children: [
+                Icon(Icons.copy, size: 20),
+                SizedBox(width: 8),
+                Text('Copy Address'),
+              ],
+            ),
+          ),
+          const PopupMenuDivider(),
+          const PopupMenuItem(
+            value: 'disconnect',
+            child: Row(
+              children: [
+                Icon(Icons.logout, size: 20, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Disconnect', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
+        ],
+      );
+    } else {
+      // Disconnected state - show connect button
+      return GestureDetector(
+        onTap: wallet.isConnecting ? null : () => _connectWallet(wallet),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.primary),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (wallet.isConnecting)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                )
+              else
+                const Icon(Icons.account_balance_wallet_outlined, 
+                  color: AppColors.primary, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                wallet.isConnecting ? 'Connecting...' : 'Connect',
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+  
+  Future<void> _connectWallet(WalletProvider wallet) async {
+    final connected = await wallet.connect();
+    
+    if (connected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text('Connected: ${wallet.displayAddress}')),
+            ],
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _loadNFTs();
+    } else if (wallet.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(wallet.errorMessage!),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  
+  void _showAirdropDialog(WalletProvider wallet) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Request Airdrop'),
+        content: const Text(
+          'Request 1 SOL from the Solana devnet faucet?\n\n'
+          'This only works on devnet and is for testing purposes.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              
+              // Show loading
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Requesting airdrop...')),
+              );
+              
+              final success = await wallet.requestAirdrop();
+              
+              if (mounted) {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success 
+                      ? 'Airdrop successful! Balance: ${wallet.balance.toStringAsFixed(4)} SOL'
+                      : 'Airdrop failed. Try again later.'),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Request'),
+          ),
+        ],
       ),
     );
   }

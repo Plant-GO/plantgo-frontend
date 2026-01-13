@@ -14,6 +14,7 @@ import 'providers/scan_provider.dart';
 import 'providers/wallet_provider.dart';
 import 'providers/nft_provider.dart';
 import 'providers/verification_provider.dart';
+import 'services/backend_url_provider.dart';
 import 'screens/main_navigation.dart';
 import 'screens/welcome_screen.dart';
 
@@ -27,6 +28,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Preload backend URL (caches it for faster first request)
+  await BackendUrlProvider.getBackendUrl();
 
   // Check if user has completed onboarding
   final prefs = await SharedPreferences.getInstance();

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../blockchain/blockchain.dart';
 import '../models/verification.dart';
 import 'nft_minting_service.dart';
@@ -153,21 +154,52 @@ class VerificationService {
         transaction.update(docRef, updatedVerification.toFirestore());
 
         // Update treasure document status
-        transaction.update(
-          _firestore.collection(_treasuresCollection).doc(treasureId),
-          {
-            'verificationStatus': newStatus.name,
-            if (newStatus == VerificationStatus.verified)
-              'nftPending': true, // Mark for NFT minting
-          },
-        );
+        if (newStatus == VerificationStatus.rejected) {
+          // Don't update - we'll delete it after transaction
+          debugPrint('🗑️ Will delete rejected treasure: $treasureId');
+        } else {
+          transaction.update(
+            _firestore.collection(_treasuresCollection).doc(treasureId),
+            {
+              'verificationStatus': newStatus.name,
+              if (newStatus == VerificationStatus.verified)
+                'nftPending': true, // Mark for NFT minting
+            },
+          );
+        }
 
         debugPrint('✅ Vote submitted: ${isUpvote ? "👍" : "👎"} for $treasureId');
+        
+        // Delete rejected treasures from system after transaction
+        if (newStatus == VerificationStatus.rejected) {
+          // Run deletion in background after transaction completes
+          Future.delayed(Duration.zero, () async {
+            await _deleteRejectedTreasure(treasureId);
+          });
+        }
+        
         return updatedVerification;
       });
     } catch (e) {
       debugPrint('❌ Error submitting vote: $e');
       return null;
+    }
+  }
+
+  /// Delete rejected treasure completely from system
+  Future<void> _deleteRejectedTreasure(String treasureId) async {
+    try {
+      debugPrint('🗑️ Deleting rejected treasure: $treasureId');
+      
+      // Delete verification record
+      await _firestore.collection(_verificationsCollection).doc(treasureId).delete();
+      
+      // Delete treasure document
+      await _firestore.collection(_treasuresCollection).doc(treasureId).delete();
+      
+      debugPrint('✅ Rejected treasure deleted from system: $treasureId');
+    } catch (e) {
+      debugPrint('❌ Error deleting rejected treasure: $e');
     }
   }
 
@@ -283,6 +315,7 @@ class VerificationService {
   Stream<List<Map<String, dynamic>>> streamPendingVerifications({
     String? excludeUserId,
   }) {
+    debugPrint('🔍 Streaming pending verifications, excluding userId: $excludeUserId');
     return _firestore
         .collection(_treasuresCollection)
         .where('verificationStatus', isEqualTo: VerificationStatus.pending.name)
@@ -291,12 +324,19 @@ class VerificationService {
         .snapshots()
         .asyncMap((snapshot) async {
           final results = <Map<String, dynamic>>[];
+          int skippedOwn = 0;
+          int skippedVoted = 0;
           
           for (final doc in snapshot.docs) {
             final treasureData = doc.data();
+            final treasureUserId = treasureData['userId'];
+            
+            debugPrint('📝 Checking treasure ${doc.id}: userId=$treasureUserId vs excludeUserId=$excludeUserId');
             
             // Skip if this is the user's own submission
-            if (excludeUserId != null && treasureData['userId'] == excludeUserId) {
+            if (excludeUserId != null && treasureUserId == excludeUserId) {
+              skippedOwn++;
+              debugPrint('⏭️ Skipping own submission: ${doc.id}');
               continue;
             }
 
@@ -312,6 +352,8 @@ class VerificationService {
               
               // Skip if user already voted
               if (excludeUserId != null && verification.hasVoted(excludeUserId)) {
+                skippedVoted++;
+                debugPrint('⏭️ Skipping already voted: ${doc.id}');
                 continue;
               }
             }
@@ -323,6 +365,7 @@ class VerificationService {
             });
           }
 
+          debugPrint('📋 Pending verifications: ${results.length} shown, $skippedOwn own, $skippedVoted voted');
           return results;
         });
   }
@@ -365,19 +408,121 @@ class VerificationService {
     }
   }
 
+  /// Stream user's verification history in real-time
+  Stream<List<Map<String, dynamic>>> streamUserSubmissions(String userId) {
+    return _firestore
+        .collection(_treasuresCollection)
+        .where('userId', isEqualTo: userId)
+        .where('verificationStatus', whereIn: [
+          VerificationStatus.pending.name,
+          VerificationStatus.verified.name,
+          VerificationStatus.rejected.name,
+        ])
+        .orderBy('discoveredAt', descending: true)
+        .snapshots()
+        .asyncMap((snapshot) async {
+          final results = <Map<String, dynamic>>[];
+          
+          for (final doc in snapshot.docs) {
+            final verificationDoc = await _firestore
+                .collection(_verificationsCollection)
+                .doc(doc.id)
+                .get();
+
+            results.add({
+              'treasure': doc.data(),
+              'treasureId': doc.id,
+              'verification': verificationDoc.exists 
+                  ? TreasureVerification.fromFirestore(verificationDoc) 
+                  : null,
+            });
+          }
+
+          debugPrint('📋 User has ${results.length} submissions');
+          return results;
+        });
+  }
+
+  /// Stream user's voted items in real-time
+  Stream<List<Map<String, dynamic>>> streamUserVotes(String userId) {
+    return _firestore
+        .collection(_verificationsCollection)
+        .where('voterIds', arrayContains: userId)
+        .snapshots()
+        .asyncMap((snapshot) async {
+          final results = <Map<String, dynamic>>[];
+          
+          for (final verificationDoc in snapshot.docs) {
+            final treasureId = verificationDoc.id;
+            
+            // Get corresponding treasure
+            final treasureDoc = await _firestore
+                .collection(_treasuresCollection)
+                .doc(treasureId)
+                .get();
+            
+            if (treasureDoc.exists) {
+              results.add({
+                'treasure': treasureDoc.data(),
+                'treasureId': treasureId,
+                'verification': TreasureVerification.fromFirestore(verificationDoc),
+              });
+            }
+          }
+          
+          debugPrint('📋 User has voted on ${results.length} items');
+          return results;
+        });
+  }
+  
+  /// Mark all pending verifications as seen by user (for badge tracking)
+  Future<void> markAllAsSeen(String? userId) async {
+    if (userId == null) return;
+    
+    try {
+      // Store last seen timestamp in user's preferences or a separate collection
+      // For now, we'll use SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('lastSeenVerifications_$userId', DateTime.now().millisecondsSinceEpoch);
+      debugPrint('✅ Marked verifications as seen at ${DateTime.now()}');
+    } catch (e) {
+      debugPrint('❌ Error marking as seen: $e');
+    }
+  }
+
   /// Get count of pending verifications (for badge)
   Stream<int> streamPendingCount({String? excludeUserId}) {
     return _firestore
         .collection(_treasuresCollection)
         .where('verificationStatus', isEqualTo: VerificationStatus.pending.name)
         .snapshots()
-        .map((snapshot) {
+        .asyncMap((snapshot) async {
           if (excludeUserId == null) return snapshot.docs.length;
           
-          // Exclude user's own submissions
-          return snapshot.docs
-              .where((doc) => doc.data()['userId'] != excludeUserId)
-              .length;
+          // Get last seen timestamp
+          final prefs = await SharedPreferences.getInstance();
+          final lastSeen = prefs.getInt('lastSeenVerifications_$excludeUserId') ?? 0;
+          final lastSeenDate = DateTime.fromMillisecondsSinceEpoch(lastSeen);
+          
+          // Only count items that are:
+          // 1. Not user's own submissions
+          // 2. Created after last seen timestamp (NEW items)
+          int newCount = 0;
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            final treasureUserId = data['userId'];
+            
+            // Skip user's own submissions
+            if (treasureUserId == excludeUserId) continue;
+            
+            // Check if this is a NEW verification (created after last seen)
+            final discoveredAt = (data['discoveredAt'] as Timestamp?)?.toDate();
+            if (discoveredAt != null && discoveredAt.isAfter(lastSeenDate)) {
+              newCount++;
+            }
+          }
+          
+          return newCount;
         });
   }
 }

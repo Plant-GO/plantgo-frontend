@@ -51,6 +51,9 @@ dependencies:
   # Blockchain / Wallet
   url_launcher: ^6.2.4       # Deep link handling for Phantom
   app_links: ^6.3.0          # Universal links for wallet callback
+  solana: ^0.31.0            # Solana SDK for transaction building
+  pinenacl: ^0.6.0           # NaCl encryption for Phantom v1 protocol
+  bs58: ^1.0.2               # Proven Base58 encoding for Solana compatibility
   
   # UI Enhancements for NFT Cards
   shimmer: ^3.0.0            # Shimmer effects for loading/cards

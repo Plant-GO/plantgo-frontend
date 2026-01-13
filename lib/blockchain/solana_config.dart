@@ -61,14 +61,20 @@ class SolanaConfig {
   // ============ Backend API ============
   
   /// Backend API base URL for NFT minting
-  /// TODO: Update with your actual backend URL
-  static const String backendApiUrl = 'https://api.plantgo.app';
+  /// For development: Use your local IP (not localhost for mobile)
+  /// For production: Update to your deployed backend URL
+  /// NOTE: This is now dynamically loaded from SharedPreferences
+  /// Use BackendConfigScreen to set the IP address
+  static const String backendApiUrl = 'http://10.0.2.2:3001'; // Default fallback
   
   /// NFT minting endpoint
   static const String mintEndpoint = '/api/nft/mint';
   
   /// Get user's NFTs endpoint
   static const String userNftsEndpoint = '/api/nft/user';
+  
+  /// Check if backend is available
+  static const bool useBackend = true;
 
   // ============ Helpers ============
   

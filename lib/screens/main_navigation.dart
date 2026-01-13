@@ -55,6 +55,11 @@ class _MainNavigationState extends State<MainNavigation> {
       final userId = prefs.getString('deviceId');
       
       if (userId != null && mounted) {
+        // Set user ID in UserProvider (IMPORTANT: This must be done first!)
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        userProvider.setDeviceId(userId);
+        debugPrint('🆔 Set deviceId in UserProvider: $userId');
+        
         // Load course progress
         final courseProvider = Provider.of<CourseProvider>(context, listen: false);
         await courseProvider.loadUserProgress(userId);
@@ -64,7 +69,6 @@ class _MainNavigationState extends State<MainNavigation> {
         final userService = UserService();
         final user = await userService.getUser(userId);
         if (user != null && mounted) {
-          final userProvider = Provider.of<UserProvider>(context, listen: false);
           // Update the UserProvider with Firebase data
           userProvider.setCoinsAndLeaves(user.coins, user.leaves);
           debugPrint('💰 Loaded ${user.coins} coins and ${user.leaves} leaves for $userId');
@@ -145,19 +149,27 @@ class _MainNavigationState extends State<MainNavigation> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               // Left side items
-              _buildNavItem(0, Icons.route_rounded, 'Course'),
-              _buildNavItemWithBadge(1, Icons.how_to_vote_rounded, 'Verify'),
+              Flexible(
+                child: _buildNavItem(0, Icons.route_rounded, 'Course'),
+              ),
+              Flexible(
+                child: _buildNavItemWithBadge(1, Icons.how_to_vote_rounded, 'Community'),
+              ),
 
               // Center gap for FAB
               const SizedBox(width: 60),
 
               // Right side items
-              _buildNavItem(
-                2,
-                Icons.collections_bookmark_rounded,
-                'Collection',
+              Flexible(
+                child: _buildNavItem(
+                  2,
+                  Icons.collections_bookmark_rounded,
+                  'Collection',
+                ),
               ),
-              _buildNavItem(3, Icons.center_focus_strong_rounded, 'Identify'),
+              Flexible(
+                child: _buildNavItem(3, Icons.center_focus_strong_rounded, 'Identify'),
+              ),
             ],
           ),
         ),
@@ -177,7 +189,7 @@ class _MainNavigationState extends State<MainNavigation> {
       },
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -190,6 +202,9 @@ class _MainNavigationState extends State<MainNavigation> {
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: color,
               ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ],
         ),
@@ -209,7 +224,7 @@ class _MainNavigationState extends State<MainNavigation> {
       },
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -256,6 +271,9 @@ class _MainNavigationState extends State<MainNavigation> {
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: color,
               ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ],
         ),
@@ -653,15 +671,32 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                       final walletProvider = context.read<WalletProvider>();
                       final treasureService = TreasureService();
                       
+                      // Ensure userId is not empty
+                      final userId = userProvider.deviceId;
+                      if (userId.isEmpty) {
+                        debugPrint('❌ ERROR: User ID is empty!');
+                        if (mounted) {
+                          Navigator.pop(context); // Close loading dialog
+                          Navigator.pop(context); // Close result dialog
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Failed to save: User ID not found. Please restart the app.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                        return;
+                      }
+                      
                       debugPrint('💾 Saving treasure to Firebase...');
-                      debugPrint('   User ID: ${userProvider.deviceId}');
+                      debugPrint('   User ID: $userId');
                       debugPrint('   Common Name: $displayName');
                       debugPrint('   Scientific Name: $scientificName');
                       debugPrint('   Location: ${position.latitude}, ${position.longitude}');
-                      debugPrint('   Wallet: ${walletProvider.walletAddress ?? "device_${userProvider.deviceId}"}');
+                      debugPrint('   Wallet: ${walletProvider.walletAddress ?? "device_$userId"}');
                       
                       // Get wallet address (use device ID if no wallet connected)
-                      final walletAddress = walletProvider.walletAddress ?? 'device_${userProvider.deviceId}';
+                      final walletAddress = walletProvider.walletAddress ?? 'device_$userId';
                       
                       final result = await treasureService.saveTreasure(
                         plantName: scientificName,
@@ -669,7 +704,7 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
                         latitude: position.latitude,
                         longitude: position.longitude,
                         imageBase64: imageBase64,
-                        userId: userProvider.deviceId,
+                        userId: userId,
                         userName: userProvider.userName.isEmpty ? 'Explorer' : userProvider.userName,
                         levelId: 0, // No riddle level for manual identification
                         confidence: topMatch.probability,

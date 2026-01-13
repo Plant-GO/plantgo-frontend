@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import '../services/wallet_service.dart';
+import '../services/solana_transaction_service.dart';
 
 /// Provider for Phantom wallet connection state.
 /// 
 /// Manages wallet connection, disconnection, and provides reactive state.
 class WalletProvider extends ChangeNotifier {
   final WalletService _walletService = WalletService();
+  final SolanaTransactionService _transactionService = SolanaTransactionService();
 
   /// Current wallet address (null if not connected)
   String? _walletAddress;
@@ -24,6 +26,14 @@ class WalletProvider extends ChangeNotifier {
 
   /// Whether currently connecting
   bool get isConnecting => _connectionState == WalletConnectionState.connecting;
+  
+  /// Whether Phantom app is installed
+  bool _phantomInstalled = false;
+  bool get isPhantomInstalled => _phantomInstalled;
+
+  /// SOL balance
+  double _balance = 0;
+  double get balance => _balance;
 
   /// Error message if connection failed
   String? _errorMessage;
@@ -32,6 +42,7 @@ class WalletProvider extends ChangeNotifier {
   /// Initialize the provider
   Future<void> initialize() async {
     await _walletService.initialize();
+    _phantomInstalled = await _walletService.checkPhantomInstalled();
     await _loadSavedWallet();
   }
 
@@ -41,13 +52,47 @@ class WalletProvider extends ChangeNotifier {
     if (address != null && address.isNotEmpty) {
       _walletAddress = address;
       _connectionState = WalletConnectionState.connected;
+      // Fetch balance
+      await refreshBalance();
       notifyListeners();
+    }
+  }
+  
+  /// Refresh SOL balance
+  Future<void> refreshBalance() async {
+    if (_walletAddress == null) return;
+    
+    try {
+      _balance = await _transactionService.getBalance(_walletAddress!);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('WalletProvider: Error refreshing balance: $e');
+    }
+  }
+  
+  /// Request airdrop (devnet only)
+  Future<bool> requestAirdrop({double sol = 1.0}) async {
+    if (_walletAddress == null) return false;
+    
+    try {
+      final signature = await _transactionService.requestAirdrop(_walletAddress!, sol: sol);
+      if (signature != null) {
+        await refreshBalance();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('WalletProvider: Airdrop error: $e');
+      return false;
     }
   }
 
   /// Connect to Phantom wallet
   Future<bool> connect() async {
     if (isConnecting) return false;
+    
+    // Check if Phantom is installed
+    _phantomInstalled = await _walletService.checkPhantomInstalled();
 
     _connectionState = WalletConnectionState.connecting;
     _errorMessage = null;
@@ -60,11 +105,15 @@ class WalletProvider extends ChangeNotifier {
         _walletAddress = address;
         _connectionState = WalletConnectionState.connected;
         _errorMessage = null;
+        // Fetch balance after connecting
+        await refreshBalance();
         notifyListeners();
         return true;
       } else {
         _connectionState = WalletConnectionState.disconnected;
-        _errorMessage = 'Connection cancelled or failed';
+        _errorMessage = _phantomInstalled 
+            ? 'Connection cancelled or failed' 
+            : 'Phantom wallet not installed';
         notifyListeners();
         return false;
       }

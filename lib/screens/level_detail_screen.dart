@@ -12,6 +12,7 @@ import '../providers/wallet_provider.dart';
 import '../providers/nft_provider.dart';
 import '../services/treasure_service.dart';
 import '../services/user_service.dart';
+import '../services/nft_minting_service.dart';
 import '../widgets/mint_progress_dialog.dart';
 import 'animated_scanner_screen.dart';
 import 'map_exploration_screen.dart';
@@ -696,12 +697,14 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
         position = null;
       }
 
-      // Get user info
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('deviceId') ?? 'unknown';
-      final userName = prefs.getString('userName') ?? 'Anonymous';
+      // Get user info from UserProvider (more reliable than SharedPreferences)
+      final userProvider = context.read<UserProvider>();
+      final userId = userProvider.deviceId;
+      final userName = userProvider.userName.isNotEmpty 
+          ? userProvider.userName 
+          : 'Anonymous';
       
-      print('👤 User: $userName ($userId)');
+      print('👤 User from Provider: $userName ($userId)');
 
       // Save treasure
       final treasureService = TreasureService();
@@ -1070,11 +1073,14 @@ class _SuccessDialogContentState extends State<_SuccessDialogContent> {
         return;
       }
 
+      // Check if this is a new species (never discovered before in database)
+      final isNewSpecies = await NFTMintingService().isNewSpecies(widget.plantName);
+
       // Create the mint future
       final mintFuture = nftProvider.mintPlantDiscoveryNFT(
         walletAddress: wallet.walletAddress!,
         plantName: widget.plantName,
-        isNewSpecies: false, // Determined by backend
+        isNewSpecies: isNewSpecies,
         scientificName: widget.treasure?.plantName,
       );
 

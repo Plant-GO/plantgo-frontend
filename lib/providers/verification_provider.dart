@@ -20,6 +20,10 @@ class VerificationProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _userSubmissions = [];
   List<Map<String, dynamic>> get userSubmissions => _userSubmissions;
 
+  /// Items the user has voted on
+  List<Map<String, dynamic>> _userVotes = [];
+  List<Map<String, dynamic>> get userVotes => _userVotes;
+
   /// Loading state
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -38,12 +42,24 @@ class VerificationProvider extends ChangeNotifier {
 
   /// Stream subscription for pending count
   StreamSubscription? _countSubscription;
+  
+  /// Stream subscription for pending verifications
+  StreamSubscription? _pendingSubscription;
+  
+  /// Stream subscription for user submissions
+  StreamSubscription? _submissionsSubscription;
+  
+  /// Stream subscription for user votes
+  StreamSubscription? _votesSubscription;
 
   /// Initialize the provider with user ID
   void initialize(String userId) {
+    debugPrint('🎯 Initializing VerificationProvider with userId: $userId');
     _currentUserId = userId;
     _listenToPendingCount();
-    loadPendingVerifications();
+    _listenToPendingVerifications();
+    _listenToUserSubmissions();
+    _listenToUserVotes();
   }
 
   /// Listen to pending verification count for badge
@@ -55,6 +71,63 @@ class VerificationProvider extends ChangeNotifier {
           _pendingCount = count;
           notifyListeners();
         });
+  }
+  
+  /// Listen to pending verifications stream
+  void _listenToPendingVerifications() {
+    if (_currentUserId == null) return;
+    
+    _pendingSubscription?.cancel();
+    _pendingSubscription = _service
+        .streamPendingVerifications(excludeUserId: _currentUserId)
+        .listen((verifications) {
+          _pendingVerifications = verifications;
+          debugPrint('🔄 Pending verifications updated: ${verifications.length} items');
+          notifyListeners();
+        }, onError: (error) {
+          debugPrint('❌ Error in pending verifications stream: $error');
+        });
+  }
+  
+  /// Listen to user submissions stream
+  void _listenToUserSubmissions() {
+    if (_currentUserId == null) return;
+    
+    _submissionsSubscription?.cancel();
+    _submissionsSubscription = _service
+        .streamUserSubmissions(_currentUserId!)
+        .listen((submissions) {
+          _userSubmissions = submissions;
+          debugPrint('🔄 User submissions updated: ${submissions.length} items');
+          notifyListeners();
+        }, onError: (error) {
+          debugPrint('❌ Error in user submissions stream: $error');
+        });
+  }
+  
+  /// Listen to user votes stream
+  void _listenToUserVotes() {
+    if (_currentUserId == null) return;
+    
+    _votesSubscription?.cancel();
+    _votesSubscription = _service
+        .streamUserVotes(_currentUserId!)
+        .listen((votes) {
+          _userVotes = votes;
+          debugPrint('🔄 User votes updated: ${votes.length} items');
+          notifyListeners();
+        }, onError: (error) {
+          debugPrint('❌ Error in user votes stream: $error');
+        });
+  }
+  
+  /// Mark all pending verifications as seen (clears badge)
+  Future<void> markAllAsSeen() async {
+    await _service.markAllAsSeen(_currentUserId);
+    // Force immediate update by triggering a manual recount
+    _pendingCount = 0;
+    notifyListeners();
+    debugPrint('✅ Marked all verifications as seen, badge cleared');
   }
 
   /// Load pending verifications from Firestore
@@ -223,6 +296,9 @@ class VerificationProvider extends ChangeNotifier {
   @override
   void dispose() {
     _countSubscription?.cancel();
+    _pendingSubscription?.cancel();
+    _submissionsSubscription?.cancel();
+    _votesSubscription?.cancel();
     super.dispose();
   }
 }
