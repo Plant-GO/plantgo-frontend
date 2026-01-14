@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import '../blockchain/blockchain.dart';
 import '../core/theme/app_colors.dart';
 import '../models/level.dart';
@@ -686,13 +685,13 @@ class _LevelDetailScreenState extends State<LevelDetailScreen>
     final message = customModelUsed ? 'Custom model used' : 'API used';
     final backgroundColor = customModelUsed ? AppColors.primary : Colors.blueGrey;
 
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: backgroundColor,
-      textColor: Colors.white,
-      fontSize: 12.0,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 

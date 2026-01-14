@@ -8,7 +8,6 @@ import 'package:camera/camera.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import '../core/theme/app_colors.dart';
 import '../services/plant_id_service.dart';
 import '../services/treasure_service.dart';
@@ -490,13 +489,13 @@ class _IdentifyScreenState extends State<_IdentifyScreen> {
       backgroundColor = Colors.blueGrey;
     }
 
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: backgroundColor,
-      textColor: Colors.white,
-      fontSize: 12.0,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
